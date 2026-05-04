@@ -1,0 +1,169 @@
+cat > admin-panel.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chakki Wala - Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .status-confirmed { background-color: #3b82f6; }
+    .status-processing { background-color: #f59e0b; }
+    .status-outfordelivery { background-color: #8b5cf6; }
+    .status-delivered { background-color: #10b981; }
+    .status-cancelled { background-color: #ef4444; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-primary mb-8">Chakki Wala - Admin Panel</h1>
+    
+    <!-- Login Section -->
+    <div id="loginSection" class="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
+      <h2 class="text-xl font-bold mb-4">Admin Login</h2>
+      <input type="password" id="adminKey" placeholder="Enter Admin Key" class="w-full p-3 border rounded-lg mb-4">
+      <button onclick="login()" class="w-full bg-primary text-white py-3 rounded-lg font-semibold">Login</button>
+    </div>
+    
+    <!-- Orders Section (Hidden until login) -->
+    <div id="ordersSection" style="display: none;">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Order Management</h2>
+        <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg">Logout</button>
+      </div>
+      
+      <div id="ordersList" class="space-y-4">
+        <div class="text-center py-8">Loading orders...</div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const API_BASE_URL = 'http://localhost:3000/api'
+    let adminKey = ''
+    
+    function login() {
+      adminKey = document.getElementById('adminKey').value
+      if (!adminKey) {
+        alert('Please enter admin key')
+        return
+      }
+      loadOrders()
+    }
+    
+    function logout() {
+      adminKey = ''
+      document.getElementById('loginSection').style.display = 'block'
+      document.getElementById('ordersSection').style.display = 'none'
+      document.getElementById('adminKey').value = ''
+    }
+    
+    async function loadOrders() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/orders?adminKey=${adminKey}`)
+        const data = await response.json()
+        
+        if (data.success) {
+          document.getElementById('loginSection').style.display = 'none'
+          document.getElementById('ordersSection').style.display = 'block'
+          renderOrders(data.orders)
+        } else {
+          alert('Invalid admin key')
+        }
+      } catch (error) {
+        alert('Error loading orders: ' + error.message)
+      }
+    }
+    
+    function renderOrders(orders) {
+      const container = document.getElementById('ordersList')
+      
+      if (orders.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 bg-white rounded-lg">No orders found</div>'
+        return
+      }
+      
+      container.innerHTML = orders.map(order => `
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <h3 class="font-bold text-lg">Order #${order.orderId}</h3>
+              <p class="text-sm text-gray-500">${new Date(order.orderDate).toLocaleString()}</p>
+            </div>
+            <div class="text-right">
+              <p class="font-bold text-primary">₹${order.orderTotal}</p>
+              <p class="text-sm text-gray-500">${order.paymentMethod}</p>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <p class="text-sm text-gray-500">Customer</p>
+              <p class="font-medium">${order.customerName || 'N/A'}</p>
+              <p class="text-sm">${order.customerMobile}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">Delivery Address</p>
+              <p class="text-sm">${order.address || 'N/A'}</p>
+            </div>
+          </div>
+          
+          <div class="border-t pt-4">
+            <div class="flex flex-wrap gap-4 items-center">
+              <div>
+                <p class="text-sm text-gray-500 mb-1">Current Status</p>
+                <span class="inline-block px-3 py-1 rounded-full text-white text-sm status-${order.orderStatus.toLowerCase().replace(/ /g, '')}">
+                  ${order.orderStatus}
+                </span>
+              </div>
+              
+              <div class="flex-1">
+                <p class="text-sm text-gray-500 mb-1">Update Status</p>
+                <select id="status-${order.orderId}" class="p-2 border rounded-lg mr-2">
+                  <option value="Confirmed" ${order.orderStatus === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
+                  <option value="Processing" ${order.orderStatus === 'Processing' ? 'selected' : ''}>Processing</option>
+                  <option value="Out for Delivery" ${order.orderStatus === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
+                  <option value="Delivered" ${order.orderStatus === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                  <option value="Cancelled" ${order.orderStatus === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                </select>
+                <button onclick="updateStatus('${order.orderId}')" class="bg-primary text-white px-4 py-2 rounded-lg">
+                  Update
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('')
+    }
+    
+    async function updateStatus(orderId) {
+      const statusSelect = document.getElementById(`status-${orderId}`)
+      const newStatus = statusSelect.value
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/admin/update-order-status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: orderId,
+            status: newStatus,
+            adminKey: adminKey
+          })
+        })
+        
+        const data = await response.json()
+        
+        if (data.success) {
+          alert(`Order ${orderId} status updated to ${newStatus}`)
+          loadOrders() // Refresh the list
+        } else {
+          alert('Failed to update status: ' + data.error)
+        }
+      } catch (error) {
+        alert('Error updating status: ' + error.message)
+      }
+    }
+  </script>
+</body>
+</html>
+EOF
