@@ -2,26 +2,26 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 
-const PaymentPage = () => {
-  const [paymentMethod, setPaymentMethod] = useState('gpay')
+const PaymentPage = ({ showToast }) => {
+  const [paymentMethod, setPaymentMethod] = useState('cod')
   const [loading, setLoading] = useState(false)
-  const [orderSummary, setOrderSummary] = useState({ subtotal: 0, deliveryFee: 0, gst: 0, total: 0, items: [] })
+  const [orderSummary, setOrderSummary] = useState({ subtotal: 0, deliveryFee: 0, gst: 0, total: 0 })
+  const [customerName, setCustomerName] = useState('')
   const navigate = useNavigate()
   const sessionId = localStorage.getItem('sessionId')
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   useEffect(() => {
     const cart = JSON.parse(localStorage.getItem('cart') || '[]')
     const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0)
     const deliveryFee = subtotal >= 500 ? 0 : 40
     const gst = subtotal * 0.05
-    setOrderSummary({ 
-      subtotal, 
-      deliveryFee, 
-      gst, 
-      total: subtotal + deliveryFee + gst,
-      items: cart 
-    })
+    setOrderSummary({ subtotal, deliveryFee, gst, total: subtotal + deliveryFee + gst })
+    
+    // Get customer name from selected address
+    const savedName = localStorage.getItem('checkoutCustomerName')
+    const addressDetails = JSON.parse(localStorage.getItem('selectedAddressDetails') || '{}')
+    const name = savedName || addressDetails.recipientName || 'Customer'
+    setCustomerName(name)
   }, [])
 
   const placeOrder = async () => {
@@ -30,54 +30,61 @@ const PaymentPage = () => {
     const slot = localStorage.getItem('selectedSlot')
     const cart = JSON.parse(localStorage.getItem('cart') || '[]')
     const total = orderSummary.total
+    
+    // Get the customer name from selected address
+    const addressDetails = JSON.parse(localStorage.getItem('selectedAddressDetails') || '{}')
+    const orderCustomerName = addressDetails.recipientName || customerName
 
-    // Create order object
-    const orderId = `CKW-${Date.now()}`
-    const newOrder = {
-      orderId: orderId,
-      orderDate: new Date().toISOString(),
-      orderStatus: 'Confirmed',
-      paymentMethod: paymentMethod,
-      deliverySlot: slot,
-      address: address,
-      orderTotal: total,
-      items: cart.map(item => ({
-        name: item.name,
-        weight: item.weight,
-        quantity: item.quantity,
-        price: item.price,
-        itemTotal: item.price * item.quantity
-      }))
+    if (!sessionId) {
+      if (showToast) showToast('Please login first', 'error')
+      setLoading(false)
+      return
     }
 
-    // Save to localStorage orders array
-    const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]')
-    existingOrders.unshift(newOrder) // Add new order at the beginning
-    localStorage.setItem('orders', JSON.stringify(existingOrders))
-    localStorage.setItem('lastOrderId', orderId)
-    
-    // Clear cart
-    localStorage.removeItem('cart')
-    
-    // Try to save to backend if available
+    if (!address) {
+      if (showToast) showToast('Please select delivery address', 'error')
+      setLoading(false)
+      return
+    }
+
+    if (!slot) {
+      if (showToast) showToast('Please select delivery slot', 'error')
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await api.post('/order/place', {
         sessionId,
         address,
         deliverySlot: slot,
         paymentMethod,
+        customerName: orderCustomerName,
         orderDetails: { items: cart, total }
       })
+      
       if (response.data.success) {
-        console.log('Order saved to backend:', response.data.orderId)
+        localStorage.setItem('lastOrderId', response.data.orderId)
+        localStorage.removeItem('cart')
+        localStorage.removeItem('cartCount')
+        localStorage.removeItem('checkoutCustomerName')
+        window.dispatchEvent(new Event('cartUpdated'))
+        window.dispatchEvent(new Event('storage'))
+        
+        if (showToast) {
+          showToast('Order placed successfully! Redirecting...', 'success')
+        }
+        
+        setTimeout(() => {
+          navigate('/order-success')
+        }, 1500)
       }
     } catch (error) {
-      console.log('Backend not available, order saved locally')
+      console.error('Order error:', error)
+      if (showToast) showToast('Order failed. Please try again.', 'error')
+    } finally {
+      setLoading(false)
     }
-    
-    setLoading(false)
-    alert('Order placed successfully!')
-    navigate('/order-success')
   }
 
   return (
@@ -98,26 +105,17 @@ const PaymentPage = () => {
         <h3 className="font-bold mb-3">Payment Method</h3>
         
         <label className="flex items-center justify-between p-3 border rounded-xl mb-2 cursor-pointer">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary">payments</span>
-            <span>Google Pay</span>
-          </div>
+          <div className="flex items-center gap-3"><span className="material-symbols-outlined text-primary">payments</span><span>Google Pay</span></div>
           <input type="radio" name="payment" checked={paymentMethod === 'gpay'} onChange={() => setPaymentMethod('gpay')} />
         </label>
         
         <label className="flex items-center justify-between p-3 border rounded-xl mb-2 cursor-pointer">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary">account_balance</span>
-            <span>PhonePe</span>
-          </div>
+          <div className="flex items-center gap-3"><span className="material-symbols-outlined text-primary">account_balance</span><span>PhonePe</span></div>
           <input type="radio" name="payment" checked={paymentMethod === 'phonepe'} onChange={() => setPaymentMethod('phonepe')} />
         </label>
         
         <label className="flex items-center justify-between p-3 border rounded-xl mb-2 cursor-pointer">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-primary">local_shipping</span>
-            <span>Cash on Delivery</span>
-          </div>
+          <div className="flex items-center gap-3"><span className="material-symbols-outlined text-primary">local_shipping</span><span>Cash on Delivery</span></div>
           <input type="radio" name="payment" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
         </label>
       </div>

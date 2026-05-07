@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
 
-const ProfilePage = () => {
+const ProfilePage = ({ showToast }) => {
   const [user, setUser] = useState({})
-  const [officeAddress, setOfficeAddress] = useState('')
-  const [officeMobile, setOfficeMobile] = useState('')
-  const [isEditing, setIsEditing] = useState(false)
   const navigate = useNavigate()
   const sessionId = localStorage.getItem('sessionId')
 
@@ -14,24 +10,12 @@ const ProfilePage = () => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}')
     setUser(userData)
     if (!sessionId) navigate('/login')
-    
-    // Load saved office address and mobile
-    const savedOfficeAddress = localStorage.getItem('officeAddress')
-    const savedOfficeMobile = localStorage.getItem('officeMobile')
-    if (savedOfficeAddress) setOfficeAddress(savedOfficeAddress)
-    if (savedOfficeMobile) setOfficeMobile(savedOfficeMobile)
   }, [])
-
-  const handleSaveOfficeDetails = () => {
-    localStorage.setItem('officeAddress', officeAddress)
-    localStorage.setItem('officeMobile', officeMobile)
-    setIsEditing(false)
-    alert('Office address and mobile number saved successfully!')
-  }
 
   const handleLogout = () => {
     localStorage.clear()
     navigate('/login')
+    if (showToast) showToast('Logged out successfully', 'success')
   }
 
   return (
@@ -47,70 +31,7 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Office Address Section */}
-      <div className="bg-white rounded-xl p-5 mb-6 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">business</span>
-            <h3 className="font-bold text-lg">My Office Address</h3>
-          </div>
-          {!isEditing && (
-            <button 
-              onClick={() => setIsEditing(true)}
-              className="text-primary text-sm font-semibold flex items-center gap-1"
-            >
-              <span className="material-symbols-outlined text-sm">edit</span>
-              Edit
-            </button>
-          )}
-        </div>
-        
-        {isEditing ? (
-          <div className="space-y-3">
-            <textarea
-              placeholder="Enter office address (House/Flat No., Street, Landmark, City, Pincode)"
-              value={officeAddress}
-              onChange={(e) => setOfficeAddress(e.target.value)}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              rows="3"
-            />
-            <input
-              type="tel"
-              placeholder="Office Contact Number"
-              value={officeMobile}
-              onChange={(e) => setOfficeMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={handleSaveOfficeDetails}
-                className="flex-1 bg-primary text-white py-2 rounded-lg font-semibold"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-semibold"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {officeAddress ? (
-              <>
-                <p className="text-sm text-gray-600 whitespace-pre-line">{officeAddress}</p>
-                <p className="text-sm text-gray-600 mt-2">📞 {officeMobile || 'Not provided'}</p>
-              </>
-            ) : (
-              <p className="text-sm text-gray-400">No office address added. Click Edit to add.</p>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Account Settings - Removed Saved Addresses tab */}
+      {/* Account Settings */}
       <div className="bg-white rounded-xl overflow-hidden shadow-sm">
         <button 
           onClick={() => navigate('/orders')}

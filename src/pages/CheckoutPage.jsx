@@ -4,63 +4,35 @@ import api from '../services/api'
 
 const CheckoutPage = () => {
   const [cartItems, setCartItems] = useState([])
-  const [addresses, setAddresses] = useState([])
-  const [selectedAddress, setSelectedAddress] = useState(null)
-  const [selectedSlot, setSelectedSlot] = useState(null)
-  const [showAddressSelector, setShowAddressSelector] = useState(false)
-  const [showSlotSelector, setShowSlotSelector] = useState(false)
+  const [address, setAddress] = useState('')
+  const [addressLabel, setAddressLabel] = useState('')
+  const [slot, setSlot] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const sessionId = localStorage.getItem('sessionId')
 
-  const timeSlots = [
-    { id: 1, name: 'Morning', time: '08:00 AM - 10:00 AM' },
-    { id: 2, name: 'Late Morning', time: '10:00 AM - 12:00 PM' },
-    { id: 3, name: 'Afternoon', time: '12:00 PM - 02:00 PM' },
-    { id: 4, name: 'Evening', time: '04:00 PM - 06:00 PM' },
-    { id: 5, name: 'Night', time: '06:00 PM - 08:00 PM' },
-  ]
-
   useEffect(() => {
-    loadCart()
-    loadAddresses()
-    const savedSlot = localStorage.getItem('selectedSlot')
-    if (savedSlot) setSelectedSlot(savedSlot)
-    const savedAddr = localStorage.getItem('selectedAddress')
-    const savedLabel = localStorage.getItem('selectedAddressLabel')
-    if (savedAddr) setSelectedAddress({ fullAddress: savedAddr, label: savedLabel })
+    loadData()
   }, [])
 
-  const loadCart = () => {
+  const loadData = () => {
+    // Load cart items
     const cart = JSON.parse(localStorage.getItem('cart') || '[]')
     setCartItems(cart)
-  }
-
-  const loadAddresses = async () => {
-    if (sessionId) {
-      try {
-        const res = await api.get(`/addresses/${sessionId}`)
-        setAddresses(res.data.addresses || [])
-        const defaultAddr = res.data.addresses?.find(a => a.isDefault === 'true')
-        if (defaultAddr && !selectedAddress) {
-          setSelectedAddress(defaultAddr)
-        }
-      } catch (error) {
-        console.error('Error loading addresses:', error)
-      }
+    
+    // Load saved address
+    const savedAddress = localStorage.getItem('selectedAddress')
+    const savedLabel = localStorage.getItem('selectedAddressLabel')
+    if (savedAddress) {
+      setAddress(savedAddress)
+      setAddressLabel(savedLabel || 'Delivery Address')
     }
-  }
-
-  const selectAddress = (addr) => {
-    setSelectedAddress(addr)
-    localStorage.setItem('selectedAddress', addr.fullAddress)
-    localStorage.setItem('selectedAddressLabel', addr.label)
-    setShowAddressSelector(false)
-  }
-
-  const selectSlot = (slot) => {
-    setSelectedSlot(slot.time)
-    localStorage.setItem('selectedSlot', slot.time)
-    setShowSlotSelector(false)
+    
+    // Load saved slot
+    const savedSlot = localStorage.getItem('selectedSlot')
+    if (savedSlot) {
+      setSlot(savedSlot)
+    }
   }
 
   const subtotal = cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0)
@@ -68,15 +40,27 @@ const CheckoutPage = () => {
   const gst = subtotal * 0.05
   const total = subtotal + deliveryFee + gst
 
-  const goToPayment = () => {
-    if (!selectedAddress) {
-      alert('Please select a delivery address')
+  const proceedToPayment = () => {
+    if (!address) {
+      alert('Please add a delivery address. Go back to cart and select address.')
       return
     }
-    if (!selectedSlot) {
-      alert('Please select a delivery slot')
+    if (!slot) {
+      alert('Please select a delivery slot. Go back to cart and select slot.')
       return
     }
+    
+    setLoading(true)
+    // Store order summary for payment page
+    localStorage.setItem('orderSummary', JSON.stringify({
+      items: cartItems,
+      subtotal,
+      deliveryFee,
+      gst,
+      total,
+      address,
+      slot
+    }))
     navigate('/payment')
   }
 
@@ -121,104 +105,66 @@ const CheckoutPage = () => {
         </div>
       </div>
 
-      {/* Delivery Address Section - Editable */}
-      <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">location_on</span>
-            <div>
-              <p className="text-xs text-gray-500">Delivery Address</p>
-              <p className="font-semibold">{selectedAddress?.label || 'Not selected'}</p>
-              {selectedAddress?.fullAddress && (
-                <p className="text-xs text-gray-400 truncate max-w-[200px]">{selectedAddress.fullAddress}</p>
-              )}
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowAddressSelector(!showAddressSelector)}
-            className="text-primary text-sm font-semibold"
-          >
-            {selectedAddress ? 'Change' : 'Select'}
-          </button>
+      {/* Delivery Address - Read Only */}
+      <div className="bg-gray-50 rounded-xl p-4 mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="material-symbols-outlined text-primary">location_on</span>
+          <h3 className="font-semibold">Delivery Address</h3>
         </div>
-        
-        {showAddressSelector && (
-          <div className="mt-3 pt-3 border-t">
-            <p className="text-xs text-gray-500 mb-2">Select Address:</p>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {addresses.map(addr => (
-                <button
-                  key={addr.addressId}
-                  onClick={() => selectAddress(addr)}
-                  className={`w-full text-left p-2 rounded-lg border ${
-                    selectedAddress?.addressId === addr.addressId 
-                      ? 'border-primary bg-primary/5' 
-                      : 'border-gray-200'
-                  }`}
-                >
-                  <p className="font-semibold text-sm">{addr.label}</p>
-                  <p className="text-xs text-gray-500 truncate">{addr.fullAddress}</p>
-                </button>
-              ))}
-              <Link 
-                to="/checkout" 
-                onClick={() => setShowAddressSelector(false)}
-                className="block text-center text-primary text-sm py-2"
-              >
-                + Add New Address
-              </Link>
-            </div>
+        {address ? (
+          <>
+            <p className="text-sm font-medium text-primary">{addressLabel}</p>
+            <p className="text-sm text-gray-600 mt-1">{address}</p>
+          </>
+        ) : (
+          <div className="text-center py-2">
+            <p className="text-sm text-gray-500 mb-2">No address selected</p>
+            <Link to="/cart" className="text-primary text-sm font-semibold inline-flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">arrow_back</span>
+              Go to Cart to add address
+            </Link>
           </div>
         )}
       </div>
 
-      {/* Delivery Slot Section - Editable */}
-      <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">schedule</span>
-            <div>
-              <p className="text-xs text-gray-500">Delivery Slot</p>
-              <p className="font-semibold">{selectedSlot || 'Not selected'}</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowSlotSelector(!showSlotSelector)}
-            className="text-primary text-sm font-semibold"
-          >
-            {selectedSlot ? 'Change' : 'Select'}
-          </button>
+      {/* Delivery Slot - Read Only */}
+      <div className="bg-gray-50 rounded-xl p-4 mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="material-symbols-outlined text-primary">schedule</span>
+          <h3 className="font-semibold">Delivery Slot</h3>
         </div>
-        
-        {showSlotSelector && (
-          <div className="mt-3 pt-3 border-t">
-            <p className="text-xs text-gray-500 mb-2">Select Time Slot:</p>
-            <div className="grid grid-cols-2 gap-2">
-              {timeSlots.map(slot => (
-                <button
-                  key={slot.id}
-                  onClick={() => selectSlot(slot)}
-                  className={`p-2 rounded-lg text-sm border ${
-                    selectedSlot === slot.time 
-                      ? 'border-primary bg-primary/5 text-primary' 
-                      : 'border-gray-200'
-                  }`}
-                >
-                  {slot.time}
-                </button>
-              ))}
-            </div>
+        {slot ? (
+          <p className="text-sm text-gray-600">{slot}</p>
+        ) : (
+          <div className="text-center py-2">
+            <p className="text-sm text-gray-500 mb-2">No delivery slot selected</p>
+            <Link to="/cart" className="text-primary text-sm font-semibold inline-flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">arrow_back</span>
+              Go to Cart to select slot
+            </Link>
           </div>
         )}
       </div>
 
-      {/* Make Payment Button */}
+      {/* Proceed Button */}
       <button 
-        onClick={goToPayment}
-        className="w-full bg-primary text-white py-4 rounded-full font-bold text-lg mt-6 shadow-lg"
+        onClick={proceedToPayment}
+        disabled={!address || !slot || loading}
+        className={`w-full py-4 rounded-full font-bold text-lg shadow-lg transition-all ${
+          (!address || !slot) 
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+            : 'bg-primary text-white active:scale-95'
+        }`}
       >
-        Make Payment →
+        {loading ? 'Processing...' : 'Proceed to Payment →'}
       </button>
+      
+      {/* Warning message if address or slot missing */}
+      {(!address || !slot) && (
+        <p className="text-center text-xs text-gray-500 mt-4">
+          Please go back to cart and select both delivery address and time slot
+        </p>
+      )}
     </div>
   )
 }

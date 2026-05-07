@@ -11,7 +11,9 @@ const VerifyOTPPage = () => {
   const mobile = localStorage.getItem('verifyMobile')
 
   useEffect(() => {
-    if (!mobile) navigate('/login')
+    if (!mobile) {
+      navigate('/login')
+    }
   }, [mobile, navigate])
 
   useEffect(() => {
@@ -25,7 +27,9 @@ const VerifyOTPPage = () => {
     const newOtp = [...otp]
     newOtp[index] = value.replace(/\D/g, '')
     setOtp(newOtp)
-    if (value && index < 5) inputs.current[index + 1].focus()
+    if (value && index < 5) {
+      inputs.current[index + 1].focus()
+    }
   }
 
   const handleKeyDown = (index, e) => {
@@ -43,17 +47,28 @@ const VerifyOTPPage = () => {
 
     setLoading(true)
     try {
-      const res = await api.post('/verify-otp', { mobile, otp: otpValue })
-      if (res.data.success) {
-        localStorage.setItem('sessionId', res.data.sessionId)
-        localStorage.setItem('user', JSON.stringify(res.data.user))
+      const response = await api.post('/verify-otp', { 
+        mobile: mobile, 
+        otp: otpValue,
+        userName: ''
+      })
+      
+      if (response.data.success) {
+        // Save session data
+        localStorage.setItem('sessionId', response.data.sessionId)
+        localStorage.setItem('user', JSON.stringify(response.data.user))
         localStorage.removeItem('verifyMobile')
         
-        // Redirect to HOME page
-        navigate('/')
+        // Force redirect to home page
+        window.location.href = '/'
+      } else {
+        alert('Invalid OTP. Please try again.')
+        setOtp(['', '', '', '', '', ''])
+        inputs.current[0].focus()
       }
     } catch (error) {
-      alert('Invalid OTP. Please try again.')
+      console.error('Verification error:', error)
+      alert('Verification failed. Please try again.')
       setOtp(['', '', '', '', '', ''])
       inputs.current[0].focus()
     } finally {
@@ -64,8 +79,10 @@ const VerifyOTPPage = () => {
   const handleResend = async () => {
     setTimeLeft(30)
     try {
-      await api.post('/send-otp', { mobile })
-      alert('OTP resent!')
+      const response = await api.post('/send-otp', { mobile })
+      if (response.data.testOtp) {
+        alert(`OTP sent: ${response.data.testOtp}`)
+      }
     } catch (error) {
       alert('Failed to resend OTP')
     }
@@ -99,7 +116,11 @@ const VerifyOTPPage = () => {
         </div>
 
         <p className="text-sm text-gray-500">Resend code in <span className="text-primary font-bold">{timeLeft}s</span></p>
-        <button onClick={handleResend} disabled={timeLeft > 0} className="text-primary text-sm mt-2 disabled:opacity-50">
+        <button 
+          onClick={handleResend} 
+          disabled={timeLeft > 0} 
+          className="text-primary text-sm mt-2 disabled:opacity-50"
+        >
           Resend OTP
         </button>
 
