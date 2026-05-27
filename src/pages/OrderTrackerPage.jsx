@@ -9,41 +9,54 @@ const OrderTrackerPage = () => {
   const [cancelling, setCancelling] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(null)
   const navigate = useNavigate()
-  const sessionId = localStorage.getItem('sessionId')
+  // FIXED: Use authToken instead of sessionId
+  const authToken = localStorage.getItem('authToken')
 
   const loadOrder = useCallback(async () => {
+    if (!authToken) {
+      navigate('/login')
+      return
+    }
+    
     try {
-      const res = await api.get(`/order/${orderId}`)
-      if (res.data.success) {
-        setOrder(res.data.order)
-        setLastUpdated(new Date().toLocaleTimeString())
+      const response = await api.getOrders()
+      if (response.success) {
+        const foundOrder = response.orders.find(o => o.order_id === orderId)
+        if (foundOrder) {
+          setOrder(foundOrder)
+          setLastUpdated(new Date().toLocaleTimeString())
+        }
       }
     } catch (error) {
       console.error('Error loading order:', error)
     }
     setLoading(false)
-  }, [orderId])
+  }, [orderId, authToken, navigate])
 
   useEffect(() => {
+    if (!authToken) {
+      navigate('/login')
+      return
+    }
     loadOrder()
     const interval = setInterval(loadOrder, 5000)
     return () => clearInterval(interval)
-  }, [loadOrder])
+  }, [loadOrder, authToken, navigate])
 
   const cancelOrder = async () => {
     if (!order) return
     
-    const canCancel = confirm('Are you sure you want to cancel this order? Refund will be initiated to your original payment method.')
+    const canCancel = confirm('Are you sure you want to cancel this order?')
     if (!canCancel) return
     
     setCancelling(true)
     try {
-      const response = await api.post('/order/cancel', { sessionId, orderId })
-      if (response.data.success) {
-        alert(response.data.message)
+      const response = await api.cancelOrder(orderId)
+      if (response.success) {
+        alert('Order cancelled successfully')
         loadOrder() // Refresh order status
       } else {
-        alert(response.data.error || 'Cannot cancel this order')
+        alert(response.error || 'Cannot cancel this order')
       }
     } catch (error) {
       alert('Error cancelling order: ' + error.message)
@@ -54,7 +67,7 @@ const OrderTrackerPage = () => {
 
   const canCancelOrder = () => {
     if (!order) return false
-    const status = order.orderStatus
+    const status = order.order_status
     return (status === 'Confirmed' || status === 'Processing') && !cancelling
   }
 
@@ -66,13 +79,13 @@ const OrderTrackerPage = () => {
   ]
 
   const getCurrentStep = () => {
-    const currentStatus = order?.orderStatus || 'Confirmed'
+    const currentStatus = order?.order_status || 'Confirmed'
     const step = steps.find(s => s.status === currentStatus)
     return step ? step.step : 1
   }
 
   const getStatusColor = () => {
-    const status = order?.orderStatus || 'Confirmed'
+    const status = order?.order_status || 'Confirmed'
     switch(status) {
       case 'Confirmed': return 'bg-blue-100 text-blue-600'
       case 'Processing': return 'bg-yellow-100 text-yellow-600'
@@ -83,12 +96,31 @@ const OrderTrackerPage = () => {
     }
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="loading-spinner"></div></div>
+  const formatAddress = (address) => {
+    if (!address) return 'Address not available'
+    if (typeof address === 'string') return address
+    if (address.fullAddress) return address.fullAddress
+    if (address.address_line1) {
+      return `${address.address_line1}, ${address.address_line2 || ''}, ${address.city || ''}, ${address.state || ''} - ${address.pincode || ''}`
+    }
+    return 'Address not available'
+  }
+
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
   if (!order) return <div className="text-center py-20">Order not found</div>
 
   const currentStep = getCurrentStep()
-  const isCancelled = order.orderStatus === 'Cancelled'
-  const refundStatus = order.refundStatus
+  const isCancelled = order.order_status === 'Cancelled'
+
+  let addressObj = order.address_json
+  if (typeof addressObj === 'string') {
+    try {
+      addressObj = JSON.parse(addressObj)
+    } catch(e) {
+      addressObj = {}
+    }
+  }
+  const formattedAddress = formatAddress(addressObj)
 
   return (
     <div className="px-4 py-4 pb-32">
@@ -104,18 +136,18 @@ const OrderTrackerPage = () => {
 
       <div className="bg-white rounded-xl p-4 mb-4">
         <p className="text-xs text-gray-500">Order ID</p>
-        <p className="font-bold text-primary">{order.orderId}</p>
+        <p className="font-bold text-primary">{order.order_id}</p>
         <p className="text-xs text-gray-500 mt-2">Customer</p>
-        <p className="text-sm font-semibold">{order.customerName || 'N/A'}</p>
+        <p className="text-sm font-semibold">{order.customer_name || 'N/A'}</p>
         <p className="text-xs text-gray-500 mt-2">Placed on</p>
-        <p className="text-sm">{order.orderDate} at {order.orderTime}</p>
+        <p className="text-sm">{order.order_date} at {order.order_time}</p>
       </div>
 
       <div className="bg-white rounded-xl p-6 mb-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold">Order Status</h3>
           <span className={`text-sm font-semibold px-3 py-1 rounded-full ${getStatusColor()}`}>
-            {order.orderStatus}
+            {order.order_status}
           </span>
         </div>
         
@@ -123,9 +155,6 @@ const OrderTrackerPage = () => {
           <div className="text-center py-4">
             <span className="material-symbols-outlined text-5xl text-red-500">cancel</span>
             <p className="text-red-600 font-semibold mt-2">This order has been cancelled</p>
-            {refundStatus === 'initiated' && (
-              <p className="text-sm text-green-600 mt-2">✓ Refund initiated. Amount will be credited within 5-7 business days.</p>
-            )}
           </div>
         ) : (
           <div className="relative">
@@ -154,12 +183,18 @@ const OrderTrackerPage = () => {
 
       <div className="bg-white rounded-xl p-4 mb-4">
         <h3 className="font-bold mb-2">Delivery Address</h3>
-        <p className="text-sm text-gray-600">{order.address || 'Address not available'}</p>
+        <p className="text-sm text-gray-600">{formattedAddress}</p>
+        {addressObj?.recipientName && (
+          <p className="text-sm mt-2">👤 {addressObj.recipientName}</p>
+        )}
+        {addressObj?.recipientMobile && (
+          <p className="text-sm text-gray-600">📞 {addressObj.recipientMobile}</p>
+        )}
       </div>
 
       <div className="bg-white rounded-xl p-4 mb-4">
         <h3 className="font-bold mb-2">Delivery Slot</h3>
-        <p className="text-sm text-gray-600">{order.deliverySlot || 'Slot not selected'}</p>
+        <p className="text-sm text-gray-600">{order.delivery_slot || 'Slot not selected'}</p>
       </div>
 
       <div className="bg-white rounded-xl p-4 mb-6">
@@ -167,15 +202,15 @@ const OrderTrackerPage = () => {
         {order.items?.map((item, idx) => (
           <div key={idx} className="flex justify-between py-2 border-b border-gray-100 last:border-0">
             <div>
-              <p className="font-medium text-sm">{item.name}</p>
+              <p className="font-medium text-sm">{item.product_name}</p>
               <p className="text-xs text-gray-500">{item.weight} x {item.quantity}</p>
             </div>
-            <p className="font-semibold">₹{item.total || item.price * item.quantity}</p>
+            <p className="font-semibold">₹{item.price * item.quantity}</p>
           </div>
         ))}
         <div className="flex justify-between pt-3 mt-2 border-t border-gray-200">
           <span className="font-bold">Total</span>
-          <span className="font-bold text-primary">₹{order.orderTotal}</span>
+          <span className="font-bold text-primary">₹{order.order_total}</span>
         </div>
       </div>
 

@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import api from '../services/api'
 
 const CheckoutPage = () => {
   const [cartItems, setCartItems] = useState([])
   const [address, setAddress] = useState('')
   const [addressLabel, setAddressLabel] = useState('')
   const [slot, setSlot] = useState('')
+  const [isNextDayDelivery, setIsNextDayDelivery] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const sessionId = localStorage.getItem('sessionId')
 
   useEffect(() => {
     loadData()
@@ -33,6 +32,10 @@ const CheckoutPage = () => {
     if (savedSlot) {
       setSlot(savedSlot)
     }
+    
+    // Check if next day delivery
+    const nextDay = localStorage.getItem('isNextDayDelivery') === 'true'
+    setIsNextDayDelivery(nextDay)
   }
 
   const subtotal = cartItems.reduce((sum, i) => sum + (i.price * i.quantity), 0)
@@ -59,7 +62,8 @@ const CheckoutPage = () => {
       gst,
       total,
       address,
-      slot
+      slot,
+      isNextDayDelivery
     }))
     navigate('/payment')
   }
@@ -85,6 +89,18 @@ const CheckoutPage = () => {
       </div>
 
       <h2 className="text-lg font-bold mb-4">Checkout</h2>
+
+      {/* Next Day Delivery Info */}
+      {isNextDayDelivery && (
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-blue-600">schedule</span>
+            <p className="text-sm text-blue-700">
+              <strong>Next Day Delivery:</strong> Orders placed after 6 PM will be delivered tomorrow. We grind flour fresh only after receiving your order.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Order Summary */}
       <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
@@ -134,7 +150,12 @@ const CheckoutPage = () => {
           <h3 className="font-semibold">Delivery Slot</h3>
         </div>
         {slot ? (
-          <p className="text-sm text-gray-600">{slot}</p>
+          <>
+            <p className="text-sm text-gray-600">{slot}</p>
+            {isNextDayDelivery && (
+              <p className="text-xs text-blue-600 mt-1">📅 Will be delivered next day</p>
+            )}
+          </>
         ) : (
           <div className="text-center py-2">
             <p className="text-sm text-gray-500 mb-2">No delivery slot selected</p>

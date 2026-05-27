@@ -1,374 +1,397 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
-const AddressManager = ({ onClose, onAddressSelect }) => {
-  const [addresses, setAddresses] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingAddress, setEditingAddress] = useState(null)
-  const [isGettingLocation, setIsGettingLocation] = useState(false)
-  const [formData, setFormData] = useState({
-    addressId: '',
-    recipientName: '',
-    mobile: '',
-    houseNo: '',
-    street: '',
-    landmark: '',
-    city: '',
-    pincode: '',
-    label: 'Home'
-  })
+const AddressManager = ({ onClose, onAddressSelect, savedAddresses = [] }) => {
+  const [addresses, setAddresses] = useState(savedAddresses);
+  const [showForm, setShowForm] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const navigate = useNavigate();
   
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const loginMobile = user.mobile || ''
+  // FIXED: Use authToken instead of sessionId
+  const authToken = localStorage.getItem('authToken');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isLoggedIn = !!authToken;
+
+  // If not logged in, show login prompt
+  if (!isLoggedIn) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl max-w-md w-full p-6 text-center">
+          <span className="material-symbols-outlined text-5xl text-primary">lock</span>
+          <h3 className="text-xl font-bold mt-4">Login Required</h3>
+          <p className="text-gray-500 mt-2">Please login to manage your addresses</p>
+          <button
+            onClick={() => {
+              onClose();
+              navigate('/login');
+            }}
+            className="mt-4 bg-primary text-white px-6 py-2 rounded-full font-semibold"
+          >
+            Login Now →
+          </button>
+          <button onClick={onClose} className="mt-3 text-gray-500 text-sm block w-full">
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
-    loadAddresses()
-  }, [])
+    loadAddresses();
+  }, []);
 
-  const loadAddresses = () => {
-    const savedAddresses = JSON.parse(localStorage.getItem('userAddresses') || '[]')
-    setAddresses(savedAddresses)
-    setLoading(false)
-  }
-
-  const saveAddress = () => {
-    if (!formData.houseNo || !formData.street || !formData.city || !formData.pincode) {
-      alert('Please fill all required fields')
-      return
-    }
-
-    const fullAddress = `${formData.houseNo}, ${formData.street}${formData.landmark ? `, ${formData.landmark}` : ''}, ${formData.city} - ${formData.pincode}`
-    
-    let updatedAddresses = [...addresses]
-    
-    if (editingAddress) {
-      const index = updatedAddresses.findIndex(a => a.addressId === editingAddress.addressId)
-      if (index !== -1) {
-        updatedAddresses[index] = {
-          ...updatedAddresses[index],
-          label: formData.label,
-          fullAddress: fullAddress,
-          recipientName: formData.recipientName,
-          mobile: formData.mobile || loginMobile,
-          houseNo: formData.houseNo,
-          streetArea: formData.street,
-          landmark: formData.landmark,
-          city: formData.city,
-          pincode: formData.pincode
-        }
-      }
-    } else {
-      const newAddress = {
-        addressId: Date.now().toString(),
-        label: formData.label,
-        fullAddress: fullAddress,
-        isDefault: addresses.length === 0,
-        recipientName: formData.recipientName,
-        mobile: formData.mobile || loginMobile,
-        houseNo: formData.houseNo,
-        streetArea: formData.street,
-        landmark: formData.landmark,
-        city: formData.city,
-        pincode: formData.pincode
-      }
-      updatedAddresses.push(newAddress)
-      
-      // If this is the first address (becomes default), update user profile name
-      if (addresses.length === 0 && formData.recipientName) {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}')
-        userData.name = formData.recipientName
-        localStorage.setItem('user', JSON.stringify(userData))
-      }
-    }
-    
-    localStorage.setItem('userAddresses', JSON.stringify(updatedAddresses))
-    setAddresses(updatedAddresses)
-    resetForm()
-    alert(editingAddress ? 'Address updated successfully!' : 'Address saved successfully!')
-  }
-
-  const deleteAddress = (addressId) => {
-    if (!confirm('Are you sure you want to delete this address?')) return
-    const updatedAddresses = addresses.filter(addr => addr.addressId !== addressId)
-    localStorage.setItem('userAddresses', JSON.stringify(updatedAddresses))
-    setAddresses(updatedAddresses)
-    alert('Address deleted successfully')
-  }
-
-  const editAddress = (addr) => {
-    setEditingAddress(addr)
-    setFormData({
-      addressId: addr.addressId,
-      recipientName: addr.recipientName || '',
-      mobile: addr.mobile || '',
-      houseNo: addr.houseNo || '',
-      street: addr.streetArea || '',
-      landmark: addr.landmark || '',
-      city: addr.city || '',
-      pincode: addr.pincode || '',
-      label: addr.label || 'Home'
-    })
-    setShowAddForm(true)
-  }
-
-  const selectAddress = (addr) => {
-    // Save full address details including recipient name
-    localStorage.setItem('selectedAddress', addr.fullAddress)
-    localStorage.setItem('selectedAddressLabel', addr.label)
-    localStorage.setItem('selectedAddressDetails', JSON.stringify({
-      fullAddress: addr.fullAddress,
-      label: addr.label,
-      recipientName: addr.recipientName,
-      mobile: addr.mobile,
-      houseNo: addr.houseNo,
-      street: addr.streetArea,
-      city: addr.city,
-      pincode: addr.pincode
-    }))
-    // Also save the recipient name as the order user name
-    localStorage.setItem('selectedAddressName', addr.recipientName || addr.label)
-    if (onAddressSelect) onAddressSelect(addr)
-    onClose()
-  }
-
-  const resetForm = () => {
-    setShowAddForm(false)
-    setEditingAddress(null)
-    setFormData({
-      addressId: '',
-      recipientName: '',
-      mobile: '',
-      houseNo: '',
-      street: '',
-      landmark: '',
-      city: '',
-      pincode: '',
-      label: 'Home'
-    })
-  }
-
-  const reverseGeocode = async (lat, lng) => {
+  const loadAddresses = async () => {
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
-      )
-      const data = await response.json()
-      
-      if (data && data.address) {
-        const address = data.address
-        return {
-          houseNo: address.house_number || '',
-          street: address.road || address.pedestrian || '',
-          city: address.city || address.town || address.village || '',
-          pincode: address.postcode || '',
-          landmark: address.suburb || address.neighbourhood || '',
-        }
+      const response = await api.getAddresses();
+      if (response.success) {
+        setAddresses(response.addresses);
       }
-      return null
     } catch (error) {
-      console.error('Reverse geocoding error:', error)
-      return null
+      console.error('Error loading addresses:', error);
     }
-  }
+  };
 
-  const useCurrentLocation = () => {
-    if (navigator.geolocation) {
-      setIsGettingLocation(true)
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        const lat = position.coords.latitude
-        const lng = position.coords.longitude
-        
-        const addressData = await reverseGeocode(lat, lng)
-        
-        if (addressData) {
-          setFormData({
-            ...formData,
-            houseNo: addressData.houseNo,
-            street: addressData.street,
-            city: addressData.city,
-            pincode: addressData.pincode,
-            landmark: addressData.landmark,
-            recipientName: user.name || '',
-            mobile: loginMobile
-          })
-          setShowAddForm(true)
-          alert('Location detected! Please review and save the address.')
-        } else {
-          alert('Could not get address details. Please enter manually.')
-        }
-        setIsGettingLocation(false)
-      }, (error) => {
-        setIsGettingLocation(false)
-        alert('Unable to get location. Please enable permissions.')
-      })
-    } else {
-      alert('Geolocation not supported')
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const [formData, setFormData] = useState({
+    label: 'Home',
+    recipientName: user.name || '',
+    recipientMobile: user.mobile || '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    pincode: '',
+    landmark: '',
+    isDefault: false
+  });
+
+  // Get current location and convert to address
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
     }
-  }
+
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`);
+          const data = await response.json();
+          
+          if (data && data.address) {
+            const addr = data.address;
+            setFormData(prev => ({
+              ...prev,
+              addressLine1: addr.road || addr.house_number ? `${addr.house_number || ''} ${addr.road || ''}`.trim() : 'Current Location',
+              addressLine2: addr.suburb || addr.neighbourhood || '',
+              city: addr.city || addr.town || addr.village || '',
+              state: addr.state || '',
+              pincode: addr.postcode || '',
+              landmark: addr.amenity || addr.shop || ''
+            }));
+            alert('Location detected! Please review and save.');
+          } else {
+            alert('Could not get address from location');
+          }
+        } catch (error) {
+          console.error('Reverse geocoding error:', error);
+          alert(`Location found! Please enter address manually.`);
+        } finally {
+          setGettingLocation(false);
+        }
+      },
+      (error) => {
+        setGettingLocation(false);
+        alert('Unable to get location. Please enable location access.');
+      }
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const addressData = {
+        ...formData,
+        addressId: editingAddress?.addressId
+      };
+
+      const response = await api.saveAddress(addressData);
+
+      if (response.success) {
+        await loadAddresses();
+        setShowForm(false);
+        setEditingAddress(null);
+        setFormData({
+          label: 'Home',
+          recipientName: user.name || '',
+          recipientMobile: user.mobile || '',
+          addressLine1: '',
+          addressLine2: '',
+          city: '',
+          state: '',
+          pincode: '',
+          landmark: '',
+          isDefault: addresses.length === 0
+        });
+        alert('Address saved successfully!');
+      } else {
+        alert('Failed to save address');
+      }
+    } catch (error) {
+      console.error('Error saving address:', error);
+      alert('Error saving address');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (addressId) => {
+    if (window.confirm('Are you sure you want to delete this address?')) {
+      try {
+        const response = await api.deleteAddress(addressId);
+        if (response.success) {
+          await loadAddresses();
+          alert('Address deleted successfully');
+        }
+      } catch (error) {
+        console.error('Error deleting address:', error);
+        alert('Error deleting address');
+      }
+    }
+  };
+
+  const handleEdit = (address) => {
+    setEditingAddress(address);
+    setFormData({
+      label: address.label,
+      recipientName: address.recipientName,
+      recipientMobile: address.recipientMobile,
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2 || '',
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      landmark: address.landmark || '',
+      isDefault: address.isDefault || false
+    });
+    setShowForm(true);
+  };
+
+  const handleSelect = (address) => {
+    onAddressSelect(address);
+    onClose();
+  };
+
+  const defaultAddress = addresses.find(a => a.is_default);
+  const additionalAddresses = addresses.filter(a => !a.is_default);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white p-4 border-b rounded-t-2xl flex justify-between items-center">
-          <h2 className="text-lg font-bold">Manage Addresses</h2>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+          <h3 className="text-xl font-bold">Manage Addresses</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
-          <button
-            onClick={useCurrentLocation}
-            disabled={isGettingLocation}
-            className="w-full flex items-center justify-center gap-2 p-3 bg-primary/10 rounded-xl text-primary font-semibold border border-primary/20 disabled:opacity-50"
-          >
-            <span className="material-symbols-outlined">my_location</span>
-            {isGettingLocation ? 'Getting location...' : 'Use Current Location'}
-          </button>
-
-          <div>
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">location_on</span>
-              Saved Addresses
-              <span className="text-xs text-gray-400">({addresses.length})</span>
-            </h3>
-            
-            {loading ? (
-              <div className="text-center py-8">Loading...</div>
-            ) : addresses.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-xl">
-                <span className="material-symbols-outlined text-4xl text-gray-300">location_off</span>
-                <p className="text-gray-500 mt-2 text-sm">No saved addresses</p>
-                <p className="text-gray-400 text-xs mt-1">Add your first address below</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {addresses.map(addr => (
-                  <div key={addr.addressId} className="border rounded-xl p-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-primary text-sm">{addr.label}</span>
-                          {addr.isDefault && (
-                            <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">Default</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1">{addr.fullAddress}</p>
-                        <p className="text-xs text-gray-400 mt-1">📞 {addr.mobile || loginMobile}</p>
-                        <p className="text-xs text-gray-400 mt-1">👤 {addr.recipientName || 'No name'}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <button onClick={() => editAddress(addr)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg">
-                          <span className="material-symbols-outlined text-sm">edit</span>
-                        </button>
-                        {!addr.isDefault && (
-                          <button onClick={() => deleteAddress(addr.addressId)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg">
-                            <span className="material-symbols-outlined text-sm">delete</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => selectAddress(addr)}
-                      className="w-full mt-3 bg-primary text-white py-2 rounded-lg text-sm font-semibold"
-                    >
-                      Deliver to this address
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <button
-              onClick={() => {
-                resetForm()
-                setShowAddForm(!showAddForm)
-              }}
-              className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/30 rounded-xl text-primary font-semibold"
-            >
-              <span className="material-symbols-outlined">add_circle</span>
-              {showAddForm ? 'Cancel' : 'Add New Address'}
-            </button>
-
-            {showAddForm && (
-              <div className="mt-4 space-y-3">
-                <input 
-                  type="text" 
-                  placeholder="Full Name (will be used for delivery) *" 
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.recipientName}
-                  onChange={(e) => setFormData({...formData, recipientName: e.target.value})}
-                />
-                <p className="text-xs text-gray-400 -mt-2">This name will appear on the order</p>
-                <input 
-                  type="tel" 
-                  placeholder="Mobile Number" 
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.mobile || loginMobile}
-                  onChange={(e) => setFormData({...formData, mobile: e.target.value})}
-                />
-                <p className="text-xs text-gray-400 -mt-2">Leave empty to use registered mobile</p>
-                <input 
-                  type="text" 
-                  placeholder="House/Flat No. *" 
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.houseNo}
-                  onChange={(e) => setFormData({...formData, houseNo: e.target.value})}
-                />
-                <input 
-                  type="text" 
-                  placeholder="Street/Area *" 
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.street}
-                  onChange={(e) => setFormData({...formData, street: e.target.value})}
-                />
-                <input 
-                  type="text" 
-                  placeholder="Landmark" 
-                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  value={formData.landmark}
-                  onChange={(e) => setFormData({...formData, landmark: e.target.value})}
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <input 
-                    type="text" 
-                    placeholder="City *" 
-                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Pincode *" 
-                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    value={formData.pincode}
-                    onChange={(e) => setFormData({...formData, pincode: e.target.value})}
-                  />
-                </div>
-                <select 
-                  className="w-full p-3 border rounded-lg"
-                  value={formData.label}
-                  onChange={(e) => setFormData({...formData, label: e.target.value})}
-                >
-                  <option value="Home">Home 🏠</option>
-                  <option value="Work">Work 💼</option>
-                  <option value="Other">Other 📍</option>
-                </select>
+        <div className="p-4">
+          {!showForm ? (
+            <>
+              {/* Action Buttons */}
+              <div className="flex gap-2 mb-4">
                 <button
-                  onClick={saveAddress}
-                  className="w-full bg-primary text-white py-3 rounded-lg font-semibold"
+                  onClick={() => {
+                    setEditingAddress(null);
+                    setFormData({
+                      label: 'Home',
+                      recipientName: user.name || '',
+                      recipientMobile: user.mobile || '',
+                      addressLine1: '',
+                      addressLine2: '',
+                      city: '',
+                      state: '',
+                      pincode: '',
+                      landmark: '',
+                      isDefault: addresses.length === 0
+                    });
+                    setShowForm(true);
+                  }}
+                  className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
                 >
-                  {editingAddress ? 'Update Address' : 'Save Address'}
+                  <span className="material-symbols-outlined">add_location</span>
+                  Add New
+                </button>
+                <button
+                  onClick={getCurrentLocation}
+                  disabled={gettingLocation}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined">my_location</span>
+                  {gettingLocation ? 'Getting...' : 'Current Location'}
                 </button>
               </div>
-            )}
-          </div>
+
+              {addresses.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <span className="material-symbols-outlined text-5xl">location_off</span>
+                  <p className="mt-2">No saved addresses</p>
+                  <p className="text-sm">Add your first address above</p>
+                </div>
+              ) : (
+                <>
+                  {/* Default Address Section */}
+                  {defaultAddress && (
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">star</span>
+                        Default Address
+                      </h4>
+                      <div className="border rounded-xl p-4 bg-primary/5">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold">{defaultAddress.label}</span>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Default</span>
+                            </div>
+                            <p className="text-sm font-medium mt-1">{defaultAddress.recipient_name}</p>
+                            <p className="text-xs text-gray-500">{defaultAddress.recipient_mobile}</p>
+                            <p className="text-xs text-gray-600 mt-2">
+                              {defaultAddress.address_line1}, {defaultAddress.address_line2 ? defaultAddress.address_line2 + ', ' : ''}
+                              {defaultAddress.city}, {defaultAddress.state} - {defaultAddress.pincode}
+                            </p>
+                            {defaultAddress.landmark && (
+                              <p className="text-xs text-gray-500">Landmark: {defaultAddress.landmark}</p>
+                            )}
+                          </div>
+                          <button onClick={() => handleEdit(defaultAddress)} className="text-blue-600 text-sm">Edit</button>
+                        </div>
+                        <button
+                          onClick={() => handleSelect(defaultAddress)}
+                          className="w-full mt-3 bg-primary/10 text-primary py-2 rounded-lg text-sm font-semibold hover:bg-primary/20 transition"
+                        >
+                          Deliver to this address
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Addresses Section */}
+                  {additionalAddresses.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base">list</span>
+                        Additional Addresses
+                      </h4>
+                      <div className="space-y-3">
+                        {additionalAddresses.map(address => {
+                          const fullAddress = `${address.address_line1}, ${address.address_line2 ? address.address_line2 + ', ' : ''}${address.city}, ${address.state} - ${address.pincode}`;
+                          return (
+                            <div key={address.address_id} className="border rounded-xl p-4">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <span className="font-bold">{address.label}</span>
+                                  <p className="text-sm font-medium mt-1">{address.recipient_name}</p>
+                                  <p className="text-xs text-gray-500">{address.recipient_mobile}</p>
+                                  <p className="text-xs text-gray-600 mt-2">{fullAddress}</p>
+                                  {address.landmark && (
+                                    <p className="text-xs text-gray-500">Landmark: {address.landmark}</p>
+                                  )}
+                                </div>
+                                <div className="flex gap-2 ml-2">
+                                  <button onClick={() => handleEdit(address)} className="text-blue-600 text-sm">Edit</button>
+                                  <button onClick={() => handleDelete(address.address_id)} className="text-red-600 text-sm">Delete</button>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleSelect(address)}
+                                className="w-full mt-3 bg-primary/10 text-primary py-2 rounded-lg text-sm font-semibold hover:bg-primary/20 transition"
+                              >
+                                Deliver to this address
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <h4 className="font-semibold">{editingAddress ? 'Edit Address' : 'Add New Address'}</h4>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Address Label</label>
+                <select name="label" value={formData.label} onChange={handleInputChange} className="w-full p-3 border rounded-xl">
+                  <option value="Home">Home</option>
+                  <option value="Office">Office</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Recipient Name *</label>
+                <input type="text" name="recipientName" value={formData.recipientName} onChange={handleInputChange} required className="w-full p-3 border rounded-xl" placeholder="Full name" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Recipient Mobile *</label>
+                <input type="tel" name="recipientMobile" value={formData.recipientMobile} onChange={handleInputChange} required pattern="[0-9]{10}" className="w-full p-3 border rounded-xl" placeholder="10-digit mobile" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Address Line 1 *</label>
+                <input type="text" name="addressLine1" value={formData.addressLine1} onChange={handleInputChange} required className="w-full p-3 border rounded-xl" placeholder="House/Flat/Apartment" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Address Line 2</label>
+                <input type="text" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange} className="w-full p-3 border rounded-xl" placeholder="Street/Locality (optional)" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-sm font-medium mb-1">City *</label><input type="text" name="city" value={formData.city} onChange={handleInputChange} required className="w-full p-3 border rounded-xl" /></div>
+                <div><label className="block text-sm font-medium mb-1">State *</label><input type="text" name="state" value={formData.state} onChange={handleInputChange} required className="w-full p-3 border rounded-xl" /></div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-sm font-medium mb-1">Pincode *</label><input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} required pattern="[0-9]{6}" className="w-full p-3 border rounded-xl" /></div>
+                <div><label className="block text-sm font-medium mb-1">Landmark</label><input type="text" name="landmark" value={formData.landmark} onChange={handleInputChange} className="w-full p-3 border rounded-xl" placeholder="Near..." /></div>
+              </div>
+
+              <label className="flex items-center gap-2">
+                <input type="checkbox" name="isDefault" checked={formData.isDefault} onChange={handleInputChange} className="w-4 h-4" />
+                <span className="text-sm">Set as default address</span>
+              </label>
+
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => { setShowForm(false); setEditingAddress(null); }} className="flex-1 bg-gray-100 py-3 rounded-xl font-semibold">Cancel</button>
+                <button type="submit" disabled={loading} className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold disabled:opacity-50">{loading ? 'Saving...' : 'Save Address'}</button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AddressManager
+export default AddressManager;

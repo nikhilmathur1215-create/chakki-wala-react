@@ -1,3 +1,4 @@
+const API_BASE_URL = 'https://chakki-wala-backend.onrender.com/api';
 class ApiService {
   getHeaders() {
     const headers = { 'Content-Type': 'application/json' };

@@ -1,90 +1,153 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import api from '../services/api'
 
 const DeliverySlotPage = () => {
-  const [selectedDate, setSelectedDate] = useState(null)
+  const [slots, setSlots] = useState([])
   const [selectedSlot, setSelectedSlot] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [isAfterCutoff, setIsAfterCutoff] = useState(false)
   const navigate = useNavigate()
 
-  const getDates = () => {
-    const dates = []
-    const today = new Date()
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today)
-      date.setDate(today.getDate() + i)
-      dates.push(date)
+  useEffect(() => {
+    loadSlots()
+    checkCutoffTime()
+  }, [])
+
+  const checkCutoffTime = () => {
+    const now = new Date()
+    const currentHour = now.getHours()
+    if (currentHour >= 18) {
+      setIsAfterCutoff(true)
     }
-    return dates
   }
 
-  const timeSlots = [
-    { id: 1, name: 'Morning', time: '08:00 AM - 10:00 AM' },
-    { id: 2, name: 'Late Morning', time: '10:00 AM - 12:00 PM' },
-    { id: 3, name: 'Afternoon', time: '12:00 PM - 02:00 PM' },
-    { id: 4, name: 'Evening', time: '04:00 PM - 06:00 PM' },
-    { id: 5, name: 'Night', time: '06:00 PM - 08:00 PM' },
-  ]
+  const loadSlots = async () => {
+    try {
+      const response = await api.get('/slots')
+      console.log('Slots API response:', response.data)
+      
+      if (response.data.success) {
+        // Show ALL slots, just indicate availability
+        setSlots(response.data.slots)
+      } else {
+        // Fallback slots
+        setSlots([
+          { id: 'slot1', name: 'Morning', time: '12:00 PM - 04:00 PM', enabled: true, startHour: 12, endHour: 16, isAvailable: true },
+          { id: 'slot2', name: 'Evening', time: '04:00 PM - 08:00 PM', enabled: true, startHour: 16, endHour: 20, isAvailable: true },
+          { id: 'slot3', name: 'Night', time: '08:00 PM - 10:00 PM', enabled: true, startHour: 20, endHour: 22, isAvailable: true }
+        ])
+      }
+    } catch (error) {
+      console.error('Error loading slots:', error)
+      setSlots([
+        { id: 'slot1', name: 'Morning', time: '12:00 PM - 04:00 PM', enabled: true, startHour: 12, endHour: 16, isAvailable: true },
+        { id: 'slot2', name: 'Evening', time: '04:00 PM - 08:00 PM', enabled: true, startHour: 16, endHour: 20, isAvailable: true },
+        { id: 'slot3', name: 'Night', time: '08:00 PM - 10:00 PM', enabled: true, startHour: 20, endHour: 22, isAvailable: true }
+      ])
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const dates = getDates()
+  const getNextDayMessage = () => {
+    const now = new Date()
+    const currentHour = now.getHours()
+    
+    if (currentHour >= 18) {
+      return {
+        title: "📅 Next Day Delivery",
+        message: "Orders placed after 6 PM will be delivered tomorrow. We grind flour fresh only after receiving your order.",
+        icon: "🌙"
+      }
+    }
+    return null
+  }
 
   const confirmSlot = () => {
-    if (!selectedDate || !selectedSlot) {
-      alert('Please select both date and time slot')
+    if (!selectedSlot) {
+      alert('Please select a delivery slot')
       return
     }
-    const formattedDate = selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-    const slotDisplay = `${formattedDate}, ${selectedSlot.time}`
-    localStorage.setItem('selectedSlot', slotDisplay)
-    navigate('/payment')
+    localStorage.setItem('selectedSlot', selectedSlot.time)
+    localStorage.setItem('selectedSlotId', selectedSlot.id)
+    
+    const now = new Date()
+    const currentHour = now.getHours()
+    if (currentHour >= 18) {
+      localStorage.setItem('isNextDayDelivery', 'true')
+    } else {
+      localStorage.setItem('isNextDayDelivery', 'false')
+    }
+    
+    navigate('/checkout')
+  }
+
+  const nextDayInfo = getNextDayMessage()
+
+  if (loading) {
+    return <div className="flex justify-center py-20"><div className="loading-spinner"></div></div>
   }
 
   return (
     <div className="px-4 py-4 pb-32">
-      <h2 className="text-lg font-bold mb-4">Select Delivery Slot</h2>
-
-      <div className="mb-6">
-        <h3 className="font-semibold mb-2">Select Date</h3>
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {dates.map((date, idx) => (
-            <button
-              key={idx}
-              onClick={() => setSelectedDate(date)}
-              className={`flex-shrink-0 w-20 py-3 rounded-xl text-center ${
-                selectedDate?.getTime() === date.getTime()
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              <div className="text-xs">{idx === 0 ? 'Today' : days[date.getDay()]}</div>
-              <div className="text-xl font-bold">{date.getDate()}</div>
-              <div className="text-xs">{date.toLocaleString('default', { month: 'short' })}</div>
-            </button>
-          ))}
-        </div>
+      <div className="flex items-center gap-2 mb-4">
+        <button onClick={() => navigate('/cart')} className="text-primary">
+          <span className="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h2 className="text-lg font-bold">Select Delivery Slot</h2>
       </div>
 
-      <div className="mb-6">
-        <h3 className="font-semibold mb-2">Select Time Slot</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {timeSlots.map(slot => (
-            <button
-              key={slot.id}
-              onClick={() => setSelectedSlot(slot)}
-              className={`p-4 rounded-xl text-left border-2 transition-all ${
-                selectedSlot?.id === slot.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-gray-200'
-              }`}
-            >
-              <div className="font-semibold">{slot.name}</div>
-              <div className="text-sm text-gray-500">{slot.time}</div>
-            </button>
-          ))}
+      {/* Next Day Delivery Message */}
+      {nextDayInfo && (
+        <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">{nextDayInfo.icon}</span>
+            <div>
+              <h3 className="font-bold text-blue-800">{nextDayInfo.title}</h3>
+              <p className="text-sm text-blue-700">{nextDayInfo.message}</p>
+            </div>
+          </div>
         </div>
+      )}
+
+      <p className="text-sm text-gray-500 mb-4">Choose your preferred delivery time slot</p>
+      
+      <div className="space-y-3">
+        {slots.map(slot => (
+          <button
+            key={slot.id}
+            onClick={() => setSelectedSlot(slot)}
+            className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+              selectedSlot?.id === slot.id
+                ? 'border-primary bg-primary/5'
+                : 'border-gray-200 hover:border-primary/50'
+            }`}
+          >
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg">{slot.name}</h3>
+                <p className="text-gray-600">{slot.time}</p>
+                {!slot.isAvailable && slot.isAvailable !== undefined && (
+                  <p className="text-xs text-orange-600 mt-1">⚠️ High demand, please select next available slot</p>
+                )}
+                {nextDayInfo && (
+                  <p className="text-xs text-blue-600 mt-1">📅 Delivered tomorrow</p>
+                )}
+              </div>
+              {selectedSlot?.id === slot.id && (
+                <span className="material-symbols-outlined text-primary">check_circle</span>
+              )}
+            </div>
+          </button>
+        ))}
       </div>
 
-      <button onClick={confirmSlot} className="w-full bg-primary text-white py-4 rounded-full font-bold text-lg shadow-lg">
+      <button
+        onClick={confirmSlot}
+        disabled={!selectedSlot}
+        className="w-full bg-primary text-white py-4 rounded-full font-bold text-lg mt-6 shadow-lg disabled:opacity-50"
+      >
         Confirm Slot →
       </button>
     </div>

@@ -1,32 +1,35 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 const LoginPage = () => {
-  const [mobile, setMobile] = useState('')
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const [mobile, setMobile] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const sendOTP = async () => {
+  const handleSendOTP = async () => {
     if (!mobile || !/^\d{10}$/.test(mobile)) {
-      alert('Please enter valid 10-digit mobile number')
-      return
+      alert('Please enter a valid 10-digit mobile number');
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await api.post('/send-otp', { mobile })
-      if (res.data.success) {
-        localStorage.setItem('verifyMobile', mobile)
-        if (res.data.testOtp) alert(`Test OTP: ${res.data.testOtp}`)
-        navigate('/verify-otp')
+      const response = await api.sendOTP(mobile);
+      if (response.success) {
+        localStorage.setItem('verifyMobile', mobile);
+        if (response.testOtp) alert(`Test OTP: ${response.testOtp}`);
+        navigate('/verify-otp');
+      } else {
+        alert(response.error || 'Failed to send OTP');
       }
     } catch (error) {
-      alert('Failed to send OTP. Make sure backend is running on port 3000')
+      console.error('Send OTP error:', error);
+      alert('Network error. Make sure backend is running on port 3000');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-surface">
@@ -52,22 +55,26 @@ const LoginPage = () => {
               placeholder="98765 43210"
               className="w-full bg-transparent py-5 px-4 text-lg font-semibold outline-none"
               maxLength={10}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendOTP()}
+              autoFocus
             />
           </div>
         </div>
 
         <button
-          onClick={sendOTP}
+          onClick={handleSendOTP}
           disabled={loading}
-          className="w-full bg-primary text-white py-5 rounded-full font-bold text-lg shadow-lg disabled:opacity-50"
+          className="w-full bg-primary text-white py-5 rounded-full font-bold text-lg shadow-lg disabled:opacity-50 transition-all active:scale-95"
         >
-          {loading ? 'Sending...' : 'Send OTP'}
+          {loading ? 'Sending OTP...' : 'Send OTP →'}
         </button>
 
-        <p className="text-xs text-center text-gray-500 mt-8">By continuing, you agree to our Terms of Service</p>
+        <p className="text-xs text-center text-gray-500 mt-8">
+          By continuing, you agree to our Terms of Service
+        </p>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default LoginPage
+export default LoginPage;

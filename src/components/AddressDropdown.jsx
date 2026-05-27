@@ -5,10 +5,11 @@ const AddressDropdown = ({ onAddressSelect }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [addresses, setAddresses] = useState([])
   const [selectedAddress, setSelectedAddress] = useState(null)
-  const sessionId = localStorage.getItem('sessionId')
+  // FIXED: Use authToken instead of sessionId
+  const authToken = localStorage.getItem('authToken')
 
   useEffect(() => {
-    if (sessionId) {
+    if (authToken) {
       loadAddresses()
     }
     // Load saved address from localStorage
@@ -17,17 +18,21 @@ const AddressDropdown = ({ onAddressSelect }) => {
     if (savedAddr) {
       setSelectedAddress({ fullAddress: savedAddr, label: savedLabel })
     }
-  }, [sessionId])
+  }, [authToken])
 
   const loadAddresses = async () => {
     try {
-      const res = await api.get(`/addresses/${sessionId}`)
-      setAddresses(res.data.addresses || [])
-      const defaultAddr = res.data.addresses?.find(a => a.isDefault === 'true')
-      if (defaultAddr) {
-        setSelectedAddress(defaultAddr)
-        localStorage.setItem('selectedAddress', defaultAddr.fullAddress)
-        localStorage.setItem('selectedAddressLabel', defaultAddr.label)
+      const response = await api.getAddresses()
+      if (response.success && response.addresses) {
+        setAddresses(response.addresses)
+        const defaultAddr = response.addresses.find(a => a.is_default)
+        if (defaultAddr) {
+          const fullAddress = `${defaultAddr.address_line1}, ${defaultAddr.address_line2 ? defaultAddr.address_line2 + ', ' : ''}${defaultAddr.city}, ${defaultAddr.state} - ${defaultAddr.pincode}`
+          const addrObj = { ...defaultAddr, fullAddress, label: defaultAddr.label }
+          setSelectedAddress(addrObj)
+          localStorage.setItem('selectedAddress', fullAddress)
+          localStorage.setItem('selectedAddressLabel', defaultAddr.label)
+        }
       }
     } catch (error) {
       console.error('Error loading addresses:', error)
@@ -79,22 +84,25 @@ const AddressDropdown = ({ onAddressSelect }) => {
           </div>
           
           <div className="max-h-60 overflow-y-auto">
-            {addresses.map(addr => (
-              <button
-                key={addr.addressId}
-                onClick={() => selectAddress(addr)}
-                className="w-full text-left p-3 hover:bg-gray-50 border-b flex items-start gap-2"
-              >
-                <span className="material-symbols-outlined text-primary text-sm">home</span>
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">{addr.label}</p>
-                  <p className="text-xs text-gray-500 truncate">{addr.fullAddress}</p>
-                </div>
-                {selectedAddress?.addressId === addr.addressId && (
-                  <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
-                )}
-              </button>
-            ))}
+            {addresses.map(addr => {
+              const fullAddress = `${addr.address_line1}, ${addr.address_line2 ? addr.address_line2 + ', ' : ''}${addr.city}, ${addr.state} - ${addr.pincode}`
+              return (
+                <button
+                  key={addr.address_id}
+                  onClick={() => selectAddress({ ...addr, fullAddress, label: addr.label })}
+                  className="w-full text-left p-3 hover:bg-gray-50 border-b flex items-start gap-2"
+                >
+                  <span className="material-symbols-outlined text-primary text-sm">home</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">{addr.label}</p>
+                    <p className="text-xs text-gray-500 truncate">{fullAddress}</p>
+                  </div>
+                  {selectedAddress?.address_id === addr.address_id && (
+                    <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
           
           <div className="p-2 border-t">
@@ -106,7 +114,7 @@ const AddressDropdown = ({ onAddressSelect }) => {
               Use Current Location
             </button>
             <button
-              onClick={() => window.location.href = '/checkout'}
+              onClick={() => window.location.href = '/profile'}
               className="w-full text-left p-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm text-primary"
             >
               <span className="material-symbols-outlined text-sm">add_location</span>
@@ -120,3 +128,4 @@ const AddressDropdown = ({ onAddressSelect }) => {
 }
 
 export default AddressDropdown
+EOF

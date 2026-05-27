@@ -50,13 +50,13 @@ function App() {
         <main className="pt-[60px]">
           <Routes>
             <Route path="/" element={<HomePage showToast={showToast} />} />
-            <Route path="/login" element={<LoginPage showToast={showToast} />} />
-            <Route path="/verify-otp" element={<VerifyOTPPage showToast={showToast} />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/verify-otp" element={<VerifyOTPPage />} />
             <Route path="/cart" element={<CartPage showToast={showToast} />} />
-            <Route path="/checkout" element={<CheckoutPage showToast={showToast} />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/payment" element={<PaymentPage showToast={showToast} />} />
             <Route path="/order-success" element={<OrderSuccessPage showToast={showToast} />} />
-            <Route path="/track-order/:orderId" element={<OrderTrackerPage showToast={showToast} />} />
+            <Route path="/track-order/:orderId" element={<OrderTrackerPage />} />
             <Route path="/profile" element={<ProfilePage showToast={showToast} />} />
             <Route path="/orders" element={<OrdersPage showToast={showToast} />} />
           </Routes>

@@ -1,92 +1,135 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
-const VerifyOTPPage = () => {
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
-  const [loading, setLoading] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(30)
-  const inputs = useRef([])
-  const navigate = useNavigate()
-  const mobile = localStorage.getItem('verifyMobile')
+const VerifyOTPPage = ({ showToast }) => {
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [loading, setLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [error, setError] = useState('');
+  const inputs = useRef([]);
+  const navigate = useNavigate();
+  const mobile = localStorage.getItem('verifyMobile');
 
   useEffect(() => {
     if (!mobile) {
-      navigate('/login')
+      navigate('/login');
     }
-  }, [mobile, navigate])
+  }, [mobile, navigate]);
 
   useEffect(() => {
-    if (timeLeft <= 0) return
-    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [timeLeft])
+    if (timeLeft <= 0) return;
+    const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [timeLeft]);
 
   const handleChange = (index, value) => {
-    if (value.length > 1) return
-    const newOtp = [...otp]
-    newOtp[index] = value.replace(/\D/g, '')
-    setOtp(newOtp)
+    if (value.length > 1) return;
+    const newOtp = [...otp];
+    newOtp[index] = value.replace(/\D/g, '');
+    setOtp(newOtp);
+    setError('');
     if (value && index < 5) {
-      inputs.current[index + 1].focus()
+      inputs.current[index + 1].focus();
     }
-  }
+  };
 
   const handleKeyDown = (index, e) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputs.current[index - 1].focus()
+      inputs.current[index - 1].focus();
     }
-  }
+  };
 
   const handleVerify = async () => {
-    const otpValue = otp.join('')
+    const otpValue = otp.join('');
     if (otpValue.length !== 6) {
-      alert('Please enter 6-digit OTP')
-      return
+      setError('Please enter 6-digit OTP');
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
+    setError('');
+    
     try {
-      const response = await api.post('/verify-otp', { 
-        mobile: mobile, 
-        otp: otpValue,
-        userName: ''
-      })
+      const response = await api.verifyOTP(mobile, otpValue);
+      console.log('Verify response:', response);
       
-      if (response.data.success) {
-        // Save session data
-        localStorage.setItem('sessionId', response.data.sessionId)
-        localStorage.setItem('user', JSON.stringify(response.data.user))
-        localStorage.removeItem('verifyMobile')
+      if (response.success && response.token) {
+        // Store auth token
+        localStorage.setItem('authToken', response.token);
         
-        // Force redirect to home page
-        window.location.href = '/'
+        // Store user info
+        if (response.user) {
+          localStorage.setItem('user', JSON.stringify(response.user));
+        } else {
+          localStorage.setItem('user', JSON.stringify({ mobile: mobile }));
+        }
+        
+        // Merge guest cart with backend cart
+        const guestCart = localStorage.getItem('cart');
+        console.log('Guest cart before merge:', guestCart);
+        
+        if (guestCart) {
+          try {
+            const cartItems = JSON.parse(guestCart);
+            if (cartItems.length > 0) {
+              console.log('Syncing guest cart items:', cartItems.length);
+              await api.syncCart(cartItems);
+              console.log('Guest cart synced successfully!');
+              localStorage.removeItem('cart');
+            }
+          } catch (err) {
+            console.error('Cart sync error:', err);
+          }
+        }
+        
+        // Remove temporary data
+        localStorage.removeItem('verifyMobile');
+        
+        // Trigger cart update event
+        window.dispatchEvent(new Event('cartUpdated'));
+        
+        if (showToast) showToast('Login successful! Cart items preserved.', 'success');
+        
+        // Check if there was a pending checkout
+        const pendingCheckout = localStorage.getItem('pendingCheckout');
+        if (pendingCheckout) {
+          localStorage.removeItem('pendingCheckout');
+          // Use window.location for guaranteed redirect
+          window.location.href = '/checkout';
+        } else {
+          // Use window.location for guaranteed redirect to home
+          console.log('Redirecting to home page...');
+          window.location.href = '/';
+        }
       } else {
-        alert('Invalid OTP. Please try again.')
-        setOtp(['', '', '', '', '', ''])
-        inputs.current[0].focus()
+        setError(response.error || 'Invalid OTP. Please try again.');
+        setOtp(['', '', '', '', '', '']);
+        inputs.current[0]?.focus();
       }
     } catch (error) {
-      console.error('Verification error:', error)
-      alert('Verification failed. Please try again.')
-      setOtp(['', '', '', '', '', ''])
-      inputs.current[0].focus()
+      console.error('Verification error:', error);
+      setError('Verification failed. Please try again.');
+      setOtp(['', '', '', '', '', '']);
+      inputs.current[0]?.focus();
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleResend = async () => {
-    setTimeLeft(30)
+    setTimeLeft(30);
+    setError('');
     try {
-      const response = await api.post('/send-otp', { mobile })
-      if (response.data.testOtp) {
-        alert(`OTP sent: ${response.data.testOtp}`)
+      const response = await api.sendOTP(mobile);
+      if (response.success && response.testOtp) {
+        if (showToast) showToast(`Test OTP: ${response.testOtp}`, 'info');
       }
     } catch (error) {
-      alert('Failed to resend OTP')
+      console.error('Resend error:', error);
+      setError('Failed to resend OTP');
     }
-  }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-white">
@@ -111,9 +154,14 @@ const VerifyOTPPage = () => {
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               className="w-14 h-14 text-center text-2xl font-bold bg-gray-100 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary outline-none"
+              autoFocus={index === 0}
             />
           ))}
         </div>
+
+        {error && (
+          <div className="text-red-500 text-sm mb-4">{error}</div>
+        )}
 
         <p className="text-sm text-gray-500">Resend code in <span className="text-primary font-bold">{timeLeft}s</span></p>
         <button 
@@ -127,13 +175,13 @@ const VerifyOTPPage = () => {
         <button
           onClick={handleVerify}
           disabled={loading}
-          className="w-full bg-primary text-white py-4 rounded-full font-bold text-lg mt-6 disabled:opacity-50"
+          className="w-full bg-primary text-white py-4 rounded-full font-bold text-lg mt-6 disabled:opacity-50 transition-all active:scale-95"
         >
-          {loading ? 'Verifying...' : 'Verify & Proceed'}
+          {loading ? 'Verifying...' : 'Verify & Proceed →'}
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default VerifyOTPPage
+export default VerifyOTPPage;
