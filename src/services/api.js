@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://chakki-wala-backend.onrender.com/api';
+const API_BASE_URL = 'https://api.chakkiwalaa.com/api';
 
 class ApiService {
   getHeaders() {
