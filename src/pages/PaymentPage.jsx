@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
+import QRCode from 'react-qr-code';
 import api from '../services/api';
 
 const UPI_ID = '8800244169@upi';
