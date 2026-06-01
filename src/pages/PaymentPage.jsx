@@ -212,6 +212,25 @@ const PaymentPage = ({ showToast }) => {
               <span className="text-2xl">📱</span>
             </label>
           </div>
+
+          {selectedMethod === 'upi' && (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
+              <p className="font-semibold text-gray-800 mb-1">Scan & Pay</p>
+              <p className="text-xs text-gray-500 mb-3">Scan using GPay, PhonePe, Paytm or any UPI app</p>
+              <div className="flex justify-center mb-3">
+                <img
+                  src="/images/QR-Sample.png"
+                  alt="UPI QR Code"
+                  className="w-48 h-48 object-contain border-2 border-amber-300 rounded-xl p-2 bg-white"
+                />
+              </div>
+              <p className="text-sm font-bold text-primary">Amount to Pay: ₹{total?.toFixed(2) || 0}</p>
+              <p className="text-xs text-gray-500 mt-2">After payment click "Confirm Order" below</p>
+              <div className="mt-3 p-2 bg-yellow-100 rounded-lg">
+                <p className="text-xs text-yellow-800 font-medium">⚠️ Please complete UPI payment before confirming</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <button
@@ -219,7 +238,7 @@ const PaymentPage = ({ showToast }) => {
           disabled={loading}
           className="w-full bg-primary text-white py-4 rounded-full font-bold text-lg shadow-lg disabled:opacity-50 transition-all active:scale-95"
         >
-          {loading ? 'Placing Order...' : `Pay ₹${total?.toFixed(2) || 0}`}
+          {loading ? 'Placing Order...' : selectedMethod === 'upi' ? `Confirm Order ₹${total?.toFixed(2) || 0}` : `Pay ₹${total?.toFixed(2) || 0}`}
         </button>
       </div>
     </div>
