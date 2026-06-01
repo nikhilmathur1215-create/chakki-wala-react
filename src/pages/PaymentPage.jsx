@@ -186,13 +186,7 @@ const PaymentPage = ({ showToast }) => {
                   onChange={(e) => setSelectedMethod(e.target.value)}
                   className="w-5 h-5 text-primary"
                 />
-                <div>
-                  <p className="font-medium">Cash on Delivery</p>
-                  <p className="text-xs text-gray-500">Pay when you receive your order</p>
-                </div>
-              </div>
-              <span className="text-2xl">💵</span>
-            </label>
+               
 
             <label className="flex items-center justify-between p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
               <div className="flex items-center gap-3">
@@ -232,7 +226,13 @@ const PaymentPage = ({ showToast }) => {
             </div>
           )}
         </div>
-
+ <div>
+                  <p className="font-medium">Cash on Delivery</p>
+                  <p className="text-xs text-gray-500">Pay when you receive your order</p>
+                </div>
+              </div>
+              <span className="text-2xl">💵</span>
+            </label>
         <button
           onClick={handlePlaceOrder}
           disabled={loading}
