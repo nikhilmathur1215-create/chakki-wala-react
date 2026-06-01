@@ -75,8 +75,9 @@ const VerifyOTPPage = ({ showToast }) => {
             if (cartItems.length > 0) {
               console.log('Syncing guest cart items:', cartItems.length);
               await api.syncCart(cartItems);
-              console.log('Guest cart synced successfully!');
-              localStorage.removeItem('cart');
+console.log('Guest cart synced successfully!');
+// Keep cart in localStorage so CartPage can still read it
+// localStorage.removeItem('cart');  ← Don't delete it!
             }
           } catch (err) {
             console.error('Cart sync error:', err);
