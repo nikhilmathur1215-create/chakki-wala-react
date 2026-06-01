@@ -212,7 +212,7 @@ const PaymentPage = ({ showToast }) => {
               <p className="text-xs text-gray-500 mb-3">Scan using GPay, PhonePe, Paytm or any UPI app</p>
               <div className="flex justify-center mb-3">
                 <div className="p-3 bg-white rounded-xl border-2 border-amber-300 inline-block">
-                  <QRCodeSVG
+                  <QRCode
                     value={upiLink}
                     size={180}
                     bgColor="#ffffff"
@@ -242,3 +242,5 @@ const PaymentPage = ({ showToast }) => {
     </div>
   );
 };
+
+export default PaymentPage;
