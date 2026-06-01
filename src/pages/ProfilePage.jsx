@@ -51,24 +51,18 @@ const ProfilePage = ({ showToast }) => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await api.logout();
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      localStorage.removeItem('verifyMobile');
-      localStorage.removeItem('cart');
-      localStorage.removeItem('pendingOrder');
-      localStorage.removeItem('selectedAddress');
-      localStorage.removeItem('selectedAddressLabel');
-      localStorage.removeItem('selectedSlot');
-      window.dispatchEvent(new Event('cartUpdated'));
-      if (showToast) showToast('Logged out successfully', 'success');
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      navigate('/login');
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('verifyMobile');
+    localStorage.removeItem('pendingOrder');
+    localStorage.removeItem('selectedAddress');
+    localStorage.removeItem('selectedAddressLabel');
+    localStorage.removeItem('selectedSlot');
+    localStorage.removeItem('pendingCheckout');
+    window.dispatchEvent(new Event('cartUpdated'));
+    if (showToast) showToast('Logged out successfully', 'success');
+    window.location.href = '/login';
   };
 
   if (loading) {
