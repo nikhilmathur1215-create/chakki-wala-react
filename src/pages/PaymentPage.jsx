@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api';
+
+const UPI_ID = '8800244169@upi';
+const UPI_NAME = 'Chakki Walaa';
 
 const PaymentPage = ({ showToast }) => {
   const [orderDetails, setOrderDetails] = useState(null);
@@ -14,25 +18,21 @@ const PaymentPage = ({ showToast }) => {
       navigate('/cart');
       return;
     }
-
     try {
       const order = JSON.parse(savedOrder);
-      console.log('Order details loaded:', order);
       setOrderDetails(order);
     } catch (error) {
       console.error('Error parsing order:', error);
       navigate('/cart');
     }
-  }, [navigate]); // Removed showToast dependency to prevent infinite loop
+  }, [navigate]);
 
   const handlePlaceOrder = async () => {
     if (!orderDetails) {
       if (showToast) showToast('No order details', 'error');
       return;
     }
-
     setLoading(true);
-
     try {
       const authToken = localStorage.getItem('authToken');
       if (!authToken) {
@@ -41,7 +41,6 @@ const PaymentPage = ({ showToast }) => {
         return;
       }
 
-      // Transform address
       const originalAddress = orderDetails.address || {};
       const formattedAddress = {
         recipientName: originalAddress.recipient_name || originalAddress.recipientName || 'Customer',
@@ -55,7 +54,6 @@ const PaymentPage = ({ showToast }) => {
         label: originalAddress.label || 'Home'
       };
 
-      // Format items
       const items = (orderDetails.items || []).map(item => ({
         name: item.name || '',
         weight: item.weight || '',
@@ -75,21 +73,14 @@ const PaymentPage = ({ showToast }) => {
         orderDetails.total || 0
       );
 
-      console.log('Place order response:', response);
-
       if (response.success && response.orderId) {
-        // Clear cart and order data
         localStorage.removeItem('pendingOrder');
         localStorage.removeItem('cart');
         localStorage.removeItem('selectedSlot');
         localStorage.removeItem('selectedAddress');
         localStorage.removeItem('selectedAddressLabel');
-        
         window.dispatchEvent(new Event('cartUpdated'));
-        
         if (showToast) showToast('Order placed successfully!', 'success');
-        
-        // Navigate to order-success with orderId
         navigate(`/order-success?orderId=${response.orderId}`);
       } else {
         if (showToast) showToast(response.error || 'Failed to place order', 'error');
@@ -112,11 +103,13 @@ const PaymentPage = ({ showToast }) => {
 
   const { address, deliverySlot, items, subtotal, deliveryFee, gst, total } = orderDetails;
   const totalItems = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
-
   const displayName = address?.recipient_name || address?.recipientName || 'Customer';
   const displayMobile = address?.recipient_mobile || address?.recipientMobile || '';
-  const displayAddress = address?.fullAddress || 
+  const displayAddress = address?.fullAddress ||
     `${address?.address_line1 || address?.addressLine1 || ''} ${address?.address_line2 || address?.addressLine2 || ''}, ${address?.city || ''}, ${address?.state || ''} - ${address?.pincode || ''}`;
+
+  // Dynamic UPI QR link with exact order amount
+  const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${total?.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Chakki Walaa Order Payment')}`;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -125,7 +118,7 @@ const PaymentPage = ({ showToast }) => {
 
         <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
           <h2 className="font-semibold text-gray-800 mb-3">Order Summary</h2>
-          
+
           <div className="mb-4 pb-3 border-b">
             <p className="text-xs text-gray-500 mb-1">Delivery Address</p>
             <p className="font-medium">{displayName}</p>
@@ -174,7 +167,7 @@ const PaymentPage = ({ showToast }) => {
 
         <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
           <h2 className="font-semibold text-gray-800 mb-3">Choose Payment Method</h2>
-          
+
           <div className="space-y-3">
             <label className="flex items-center justify-between p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
               <div className="flex items-center gap-3">
@@ -186,7 +179,13 @@ const PaymentPage = ({ showToast }) => {
                   onChange={(e) => setSelectedMethod(e.target.value)}
                   className="w-5 h-5 text-primary"
                 />
-               
+                <div>
+                  <p className="font-medium">Cash on Delivery</p>
+                  <p className="text-xs text-gray-500">Pay when you receive your order</p>
+                </div>
+              </div>
+              <span className="text-2xl">💵</span>
+            </label>
 
             <label className="flex items-center justify-between p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
               <div className="flex items-center gap-3">
@@ -212,33 +211,32 @@ const PaymentPage = ({ showToast }) => {
               <p className="font-semibold text-gray-800 mb-1">Scan & Pay</p>
               <p className="text-xs text-gray-500 mb-3">Scan using GPay, PhonePe, Paytm or any UPI app</p>
               <div className="flex justify-center mb-3">
-                <img
-                  src="/images/QR-Sample.png"
-                  alt="UPI QR Code"
-                  className="w-48 h-48 object-contain border-2 border-amber-300 rounded-xl p-2 bg-white"
-                />
+                <div className="p-3 bg-white rounded-xl border-2 border-amber-300 inline-block">
+                  <QRCodeSVG
+                    value={upiLink}
+                    size={180}
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                    level="H"
+                  />
+                </div>
               </div>
-              <p className="text-sm font-bold text-primary">Amount to Pay: ₹{total?.toFixed(2) || 0}</p>
-              <p className="text-xs text-gray-500 mt-2">After payment click "Confirm Order" below</p>
+              <p className="text-lg font-extrabold text-primary">₹{total?.toFixed(2) || 0}</p>
+              <p className="text-xs text-gray-500">UPI ID: {UPI_ID}</p>
+              <p className="text-xs text-gray-500 mt-2">Amount is pre-filled — just scan and pay!</p>
               <div className="mt-3 p-2 bg-yellow-100 rounded-lg">
-                <p className="text-xs text-yellow-800 font-medium">⚠️ Please complete UPI payment before confirming</p>
+                <p className="text-xs text-yellow-800 font-medium">⚠️ Complete UPI payment first, then click Confirm Order</p>
               </div>
             </div>
           )}
         </div>
- <div>
-                  <p className="font-medium">Cash on Delivery</p>
-                  <p className="text-xs text-gray-500">Pay when you receive your order</p>
-                </div>
-              </div>
-              <span className="text-2xl">💵</span>
-            </label>
+
         <button
           onClick={handlePlaceOrder}
           disabled={loading}
           className="w-full bg-primary text-white py-4 rounded-full font-bold text-lg shadow-lg disabled:opacity-50 transition-all active:scale-95"
         >
-          {loading ? 'Placing Order...' : selectedMethod === 'upi' ? `Confirm Order ₹${total?.toFixed(2) || 0}` : `Pay ₹${total?.toFixed(2) || 0}`}
+          {loading ? 'Placing Order...' : selectedMethod === 'upi' ? `Confirm Order ₹${total?.toFixed(2) || 0}` : `Place Order ₹${total?.toFixed(2) || 0}`}
         </button>
       </div>
     </div>
