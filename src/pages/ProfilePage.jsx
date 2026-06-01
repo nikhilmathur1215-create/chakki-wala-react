@@ -184,6 +184,33 @@ const ProfilePage = ({ showToast }) => {
         </button>
       </div>
 
+     <div className="bg-white rounded-xl p-5 shadow-sm mb-4">
+        <h3 className="font-semibold text-lg mb-3">Customer Care</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 py-2 border-b">
+            <span className="material-symbols-outlined text-primary">call</span>
+            <div>
+              <p className="text-xs text-gray-500">Phone Support</p>
+              <a href="tel:+919999999999" className="font-medium text-primary">+91 99999 99999</a>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 py-2 border-b">
+            <span className="material-symbols-outlined text-primary">mail</span>
+            <div>
+              <p className="text-xs text-gray-500">Email Support</p>
+              <a href="mailto:support@chakkiwalaa.com" className="font-medium text-primary">support@chakkiwalaa.com</a>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 py-2">
+            <span className="material-symbols-outlined text-primary">schedule</span>
+            <div>
+              <p className="text-xs text-gray-500">Support Hours</p>
+              <p className="font-medium">Mon - Sat, 9:00 AM - 6:00 PM</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <button
         onClick={handleLogout}
         className="w-full bg-red-500 text-white py-3 rounded-full font-semibold mt-4 active:scale-95 transition"
