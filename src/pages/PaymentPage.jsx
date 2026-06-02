@@ -229,18 +229,19 @@ const PaymentPage = ({ showToast }) => {
 
               {/* UPI Intent Button - opens UPI apps on mobile */}
               <a
-                href={upiLink}
-                className="mt-3 w-full block bg-transparent border-2 border-[#A0522D] text-[#A0522D] py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
-                  // On desktop, don't navigate - just show QR
-                  if (window.innerWidth > 768) {
-                    e.preventDefault();
-                    if (showToast) showToast('Please scan the QR code above to pay', 'info');
-                  }
-                }}
-              >
-                <span className="text-lg">📱</span>
-                Pay ₹{total?.toFixed(2)} with UPI App
-              </a>
+  href={upiLink}
+  className="mt-3 w-full block bg-transparent border-2 border-[#A0522D] text-[#A0522D] py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+  onClick={(e) => {
+    // On desktop, don't navigate - just show QR
+    if (window.innerWidth > 768) {
+      e.preventDefault();
+      if (showToast) showToast('Please scan the QR code above to pay', 'info');
+    }
+  }}
+>
+  <span className="text-lg">📱</span>
+  Pay ₹{total?.toFixed(2)} with UPI App
+</a>
               <p className="text-xs text-gray-400 mt-1">Opens GPay, PhonePe, Paytm etc on mobile</p>
               
               <div className="mt-3 p-2 bg-yellow-100 rounded-lg">
