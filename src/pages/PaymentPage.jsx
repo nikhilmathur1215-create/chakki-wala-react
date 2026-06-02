@@ -237,7 +237,7 @@ const navigate = useNavigate();
       if (showToast) showToast('Please scan the QR code above to pay', 'info');
     }
   }}
-  <a
+  <a>
   <span className="text-lg">📱</span>
   Pay ₹{total?.toFixed(2)} with UPI App
 </a>
