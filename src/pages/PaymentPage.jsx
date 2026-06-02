@@ -179,10 +179,7 @@ const PaymentPage = ({ showToast }) => {
                   onChange={(e) => setSelectedMethod(e.target.value)}
                   className="w-5 h-5 text-primary"
                 />
-                <div>
-                  <p className="font-medium">Cash on Delivery</p>
-                  <p className="text-xs text-gray-500">Pay when you receive your order</p>
-                </div>
+                
               </div>
               <span className="text-2xl">💵</span>
             </label>
@@ -219,6 +216,10 @@ const PaymentPage = ({ showToast }) => {
                     fgColor="#873e23"
                     level="H"
                   />
+                </div>
+                <div>
+                  <p className="font-medium">Cash on Delivery</p>
+                  <p className="text-xs text-gray-500">Pay when you receive your order</p>
                 </div>
               </div>
               <p className="text-lg font-extrabold text-primary">₹{total?.toFixed(2) || 0}</p>
