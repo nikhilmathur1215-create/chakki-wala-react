@@ -212,6 +212,7 @@ const PaymentPage = ({ showToast }) => {
                 <p className="text-xs text-yellow-800 font-medium">⚠️ Complete UPI payment first, then click Confirm Order</p>
               </div>
             </div>
+       )}
         <div className="space-y-3">
             <label className="flex items-center justify-between p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
               <div className="flex items-center gap-3">
@@ -230,7 +231,7 @@ const PaymentPage = ({ showToast }) => {
               </div>
               <span className="text-2xl">💵</span>
             </label>
-          )}
+         
         
         </div>
 
