@@ -227,7 +227,7 @@ const navigate = useNavigate();
               <p className="text-xs text-gray-500 mt-2">Amount is pre-filled — just scan and pay!</p>
 
 {/* UPI Intent Button - opens UPI apps on mobile */}
-
+  <a
   href={upiLink}
   className="mt-3 w-full bg-green-500 text-white py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
   onClick={(e) => {
@@ -237,7 +237,7 @@ const navigate = useNavigate();
       if (showToast) showToast('Please scan the QR code above to pay', 'info');
     }
   }}
-  <a>
+
   <span className="text-lg">📱</span>
   Pay ₹{total?.toFixed(2)} with UPI App
 </a>
