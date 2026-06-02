@@ -216,7 +216,7 @@ const PaymentPage = ({ showToast }) => {
                     value={upiLink}
                     size={180}
                     bgColor="#ffffff"
-                    fgColor="#000000"
+                    fgColor="#873e23"
                     level="H"
                   />
                 </div>
