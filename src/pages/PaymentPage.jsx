@@ -168,7 +168,24 @@ const PaymentPage = ({ showToast }) => {
         <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
           <h2 className="font-semibold text-gray-800 mb-3">Choose Payment Method</h2>
 
-        
+          <div className="space-y-3">
+            <label className="flex items-center justify-between p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
+              <div className="flex items-center gap-3">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="cod"
+                  checked={selectedMethod === 'cod'}
+                  onChange={(e) => setSelectedMethod(e.target.value)}
+                  className="w-5 h-5 text-primary"
+                />
+                <div>
+                  <p className="font-medium">Cash on Delivery</p>
+                  <p className="text-xs text-gray-500">Pay when you receive your order</p>
+                </div>
+              </div>
+              <span className="text-2xl">💵</span>
+            </label>
 
             <label className="flex items-center justify-between p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
               <div className="flex items-center gap-3">
@@ -212,27 +229,7 @@ const PaymentPage = ({ showToast }) => {
                 <p className="text-xs text-yellow-800 font-medium">⚠️ Complete UPI payment first, then click Confirm Order</p>
               </div>
             </div>
-       )}
-        <div className="space-y-3">
-            <label className="flex items-center justify-between p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="cod"
-                  checked={selectedMethod === 'cod'}
-                  onChange={(e) => setSelectedMethod(e.target.value)}
-                  className="w-5 h-5 text-primary"
-                />
-                <div>
-                  <p className="font-medium">Cash on Delivery</p>
-                  <p className="text-xs text-gray-500">Pay when you receive your order</p>
-                </div>
-              </div>
-              <span className="text-2xl">💵</span>
-            </label>
-         
-        
+          )}
         </div>
 
         <button
