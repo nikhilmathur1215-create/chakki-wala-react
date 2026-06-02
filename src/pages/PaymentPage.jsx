@@ -7,10 +7,10 @@ const UPI_ID = '8800244169@upi';
 const UPI_NAME = 'Chakki Walaa';
 
 const PaymentPage = ({ showToast }) => {
-  const [orderDetails, setOrderDetails] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState('cod');
-  const navigate = useNavigate();
+const [orderDetails, setOrderDetails] = useState(null);
+const [loading, setLoading] = useState(false);
+const [selectedMethod, setSelectedMethod] = useState('cod');
+const navigate = useNavigate();
 
   useEffect(() => {
     const savedOrder = localStorage.getItem('pendingOrder');
@@ -237,7 +237,7 @@ const PaymentPage = ({ showToast }) => {
       if (showToast) showToast('Please scan the QR code above to pay', 'info');
     }
   }}
->
+  <a
   <span className="text-lg">📱</span>
   Pay ₹{total?.toFixed(2)} with UPI App
 </a>
