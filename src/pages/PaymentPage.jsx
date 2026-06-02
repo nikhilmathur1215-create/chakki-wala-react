@@ -7,10 +7,10 @@ const UPI_ID = '8800244169@upi';
 const UPI_NAME = 'Chakki Walaa';
 
 const PaymentPage = ({ showToast }) => {
-const [orderDetails, setOrderDetails] = useState(null);
-const [loading, setLoading] = useState(false);
-const [selectedMethod, setSelectedMethod] = useState('cod');
-const navigate = useNavigate();
+  const [orderDetails, setOrderDetails] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState('cod');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedOrder = localStorage.getItem('pendingOrder');
@@ -210,6 +210,7 @@ const navigate = useNavigate();
             <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-center">
               <p className="font-semibold text-gray-800 mb-1">Scan & Pay</p>
               <p className="text-xs text-gray-500 mb-3">Scan using GPay, PhonePe, Paytm or any UPI app</p>
+              
               <div className="flex justify-center mb-3">
                 <div className="p-3 bg-white rounded-xl border-2 border-amber-300 inline-block">
                   <QRCode
@@ -220,28 +221,29 @@ const navigate = useNavigate();
                     level="H"
                   />
                 </div>
-                
               </div>
+              
               <p className="text-lg font-extrabold text-primary">₹{total?.toFixed(2) || 0}</p>
               <p className="text-xs text-gray-500">UPI ID: {UPI_ID}</p>
- <p className="text-xs text-gray-500 mt-2">Amount is pre-filled — just scan and pay!</p>
+              <p className="text-xs text-gray-500 mt-2">Amount is pre-filled — just scan and pay!</p>
 
-{/* UPI Intent Button - opens UPI apps on mobile */}
-<a
-  href={upiLink}
-  className="mt-3 w-full bg-green-500 text-white py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
-  onClick={(e) => {
-    // On desktop, don't navigate - just show QR
-    if (window.innerWidth > 768) {
-      e.preventDefault();
-      if (showToast) showToast('Please scan the QR code above to pay', 'info');
-    }
-  }}
->
-  <span className="text-lg">📱</span>
-  Pay ₹{total?.toFixed(2)} with UPI App
-</a>
-<p className="text-xs text-gray-400 mt-1">Opens GPay, PhonePe, Paytm etc on mobile</p>
+              {/* UPI Intent Button - opens UPI apps on mobile */}
+              <a
+                href={upiLink}
+                className="mt-3 w-full block bg-green-500 text-white py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+                onClick={(e) => {
+                  // On desktop, don't navigate - just show QR
+                  if (window.innerWidth > 768) {
+                    e.preventDefault();
+                    if (showToast) showToast('Please scan the QR code above to pay', 'info');
+                  }
+                }}
+              >
+                <span className="text-lg">📱</span>
+                Pay ₹{total?.toFixed(2)} with UPI App
+              </a>
+              <p className="text-xs text-gray-400 mt-1">Opens GPay, PhonePe, Paytm etc on mobile</p>
+              
               <div className="mt-3 p-2 bg-yellow-100 rounded-lg">
                 <p className="text-xs text-yellow-800 font-medium">⚠️ Complete UPI payment first, then click Confirm Order</p>
               </div>
