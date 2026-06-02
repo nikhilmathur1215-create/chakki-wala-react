@@ -230,8 +230,7 @@ const PaymentPage = ({ showToast }) => {
               {/* UPI Intent Button - opens UPI apps on mobile */}
               <a
                 href={upiLink}
-                className="mt-3 w-full block bg-primary text-#54433C py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
-                onClick={(e) => {
+                className="mt-3 w-full block bg-transparent border-2 border-[#A0522D] text-[#A0522D] py-3 rounded-full font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
                   // On desktop, don't navigate - just show QR
                   if (window.innerWidth > 768) {
                     e.preventDefault();
