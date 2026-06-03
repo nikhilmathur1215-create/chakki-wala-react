@@ -239,7 +239,7 @@ const PaymentPage = ({ showToast }) => {
     }
   }}
 >
-  <span className="text-lg">📱</span>
+  <span className="text-lg">Click to </span>
   Pay ₹{total?.toFixed(2)} with UPI App
 </a>
               <p className="text-xs text-gray-400 mt-1">Opens GPay, PhonePe, Paytm etc on mobile</p>
