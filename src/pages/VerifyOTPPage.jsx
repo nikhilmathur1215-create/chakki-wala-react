@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const VerifyOTPPage = ({ showToast }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -10,6 +11,8 @@ const VerifyOTPPage = ({ showToast }) => {
   const inputs = useRef([]);
   const navigate = useNavigate();
   const mobile = localStorage.getItem('verifyMobile');
+  const location = useLocation();
+  const testOtp = location.state?.testOtp;
 
   useEffect(() => {
     if (!mobile) {
@@ -142,7 +145,23 @@ console.log('Guest cart synced successfully!');
         <p className="text-gray-500 mt-2">
           We've sent a 6-digit code to <span className="text-primary font-bold">+91 {mobile}</span>
         </p>
+{testOtp && (
+  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-center">
+    <p className="text-xs text-gray-500 mb-1">Your OTP (tap to copy)</p>
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(testOtp);
+        alert('OTP copied!');
+      }}
+      className="text-2xl font-bold text-primary tracking-widest"
+    >
+      {testOtp}
+    </button>
+    <p className="text-xs text-amber-600 mt-1">👆 Tap the number to copy</p>
+  </div>
+)}
 
+<div className="flex justify-center gap-2 my-8">
         <div className="flex justify-center gap-2 my-8">
           {otp.map((digit, index) => (
             <input
