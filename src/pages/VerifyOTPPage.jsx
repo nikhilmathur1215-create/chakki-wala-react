@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
 import { useNavigate, useLocation } from 'react-router-dom';
+import api from '../services/api';
+
 
 const VerifyOTPPage = ({ showToast }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -162,7 +162,6 @@ console.log('Guest cart synced successfully!');
 )}
 
 <div className="flex justify-center gap-2 my-8">
-        <div className="flex justify-center gap-2 my-8">
           {otp.map((digit, index) => (
             <input
               key={index}
