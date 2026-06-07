@@ -125,7 +125,7 @@ console.log('Guest cart synced successfully!');
     setTimeLeft(30);
     setError('');
     try {
-      const response = await api.sendOTP(mobile);
+        const response = await api.sendOTP(mobile);  // ← Generates NEW OTP
       if (response.success && response.testOtp) {
         if (showToast) showToast(`Test OTP: ${response.testOtp}`, 'info');
       }
