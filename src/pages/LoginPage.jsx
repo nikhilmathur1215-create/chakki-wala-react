@@ -18,7 +18,6 @@ const LoginPage = () => {
       const response = await api.sendOTP(mobile);
       if (response.success) {
         localStorage.setItem('verifyMobile', mobile);
-        if (response.testOtp) alert(`Test OTP: ${response.testOtp}`);
         navigate('/verify-otp', { state: { testOtp: response.testOtp } });
       } else {
         alert(response.error || 'Failed to send OTP');
