@@ -149,15 +149,16 @@ console.log('Guest cart synced successfully!');
   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-center">
     <p className="text-xs text-gray-500 mb-1">Your OTP (tap to copy)</p>
     <button
-      onClick={() => {
-        navigator.clipboard.writeText(testOtp);
-        alert('OTP copied!');
-      }}
-      className="text-2xl font-bold text-primary tracking-widest"
-    >
-      {testOtp}
-    </button>
-    <p className="text-xs text-amber-600 mt-1">👆 Tap the number to copy</p>
+  onClick={() => {
+    const otpDigits = testOtp.split('');
+    setOtp(otpDigits);
+    setTimeout(() => inputs.current[5]?.focus(), 100);
+  }}
+  className="text-2xl font-bold text-primary tracking-widest px-4 py-2 bg-white rounded-lg border-2 border-primary active:scale-95 transition-all"
+>
+  {testOtp}
+</button>
+<p className="text-xs text-amber-600 mt-1">👆 Tap to auto-fill OTP</p>
   </div>
 )}
 
