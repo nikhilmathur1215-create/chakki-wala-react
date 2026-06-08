@@ -127,11 +127,12 @@ console.log('Guest cart synced successfully!');
     setOtp(['', '', '', '', '', '']);
     try {
       const response = await api.sendOTP(mobile);
-      if (response.success && response.testOtp) {
-        const otpDigits = response.testOtp.split('');
-        setOtp(otpDigits);
-        setTimeout(() => inputs.current[5]?.focus(), 100);
-      }
+   if (response.success && response.testOtp) {
+    setDisplayOtp(response.testOtp);
+    const otpDigits = response.testOtp.split('');
+    setOtp(otpDigits);
+    setTimeout(() => inputs.current[5]?.focus(), 100);
+}
     } catch (error) {
       console.error('Resend error:', error);
       setError('Failed to resend OTP');
@@ -148,12 +149,12 @@ console.log('Guest cart synced successfully!');
         <p className="text-gray-500 mt-2">
           We've sent a 6-digit code to <span className="text-primary font-bold">+91 {mobile}</span>
         </p>
-{testOtp && (
+{displayOtp && (
   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-center">
     <p className="text-xs text-gray-500 mb-1">Your OTP (tap to copy)</p>
     <button
-  onClick={() => {
-    const otpDigits = testOtp.split('');
+  oonClick={() => {
+    const otpDigits = displayOtp.split('');
     setOtp(otpDigits);
     setTimeout(() => inputs.current[5]?.focus(), 100);
   }}
