@@ -151,7 +151,6 @@ console.log('Guest cart synced successfully!');
         </p>
 {displayOtp && (
   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-center">
-    <p className="text-xs text-gray-500 mb-1">Your OTP (tap to copy)</p>
     <button
   onClick={() => {
     const otpDigits = displayOtp.split('');
@@ -162,7 +161,7 @@ console.log('Guest cart synced successfully!');
 >
   {displayOtp}
 </button>
-<p className="text-xs text-amber-600 mt-1">👆 Tap to auto-fill OTP</p>
+<p className="text-xs text-amber-600 mt-1">Tap to auto-fill OTP</p>
   </div>
 )}
 
