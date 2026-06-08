@@ -153,7 +153,7 @@ console.log('Guest cart synced successfully!');
   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-center">
     <p className="text-xs text-gray-500 mb-1">Your OTP (tap to copy)</p>
     <button
-  oonClick={() => {
+  onClick={() => {
     const otpDigits = displayOtp.split('');
     setOtp(otpDigits);
     setTimeout(() => inputs.current[5]?.focus(), 100);
