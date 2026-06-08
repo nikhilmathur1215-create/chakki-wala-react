@@ -12,7 +12,7 @@ const VerifyOTPPage = ({ showToast }) => {
   const navigate = useNavigate();
   const mobile = localStorage.getItem('verifyMobile');
   const location = useLocation();
-  const testOtp = location.state?.testOtp;
+  const [displayOtp, setDisplayOtp] = useState(location.state?.testOtp || '');
 
   useEffect(() => {
     if (!mobile) {
