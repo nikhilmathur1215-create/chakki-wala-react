@@ -160,7 +160,7 @@ console.log('Guest cart synced successfully!');
   }}
   className="text-2xl font-bold text-primary tracking-widest px-4 py-2 bg-white rounded-lg border-2 border-primary active:scale-95 transition-all"
 >
-  {testOtp}
+  {displayOtp}
 </button>
 <p className="text-xs text-amber-600 mt-1">👆 Tap to auto-fill OTP</p>
   </div>
