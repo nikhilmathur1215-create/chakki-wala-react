@@ -124,10 +124,13 @@ console.log('Guest cart synced successfully!');
   const handleResend = async () => {
     setTimeLeft(30);
     setError('');
+    setOtp(['', '', '', '', '', '']);
     try {
-        const response = await api.sendOTP(mobile);  // ← Generates NEW OTP
+      const response = await api.sendOTP(mobile);
       if (response.success && response.testOtp) {
-        if (showToast) showToast(`Test OTP: ${response.testOtp}`, 'info');
+        const otpDigits = response.testOtp.split('');
+        setOtp(otpDigits);
+        setTimeout(() => inputs.current[5]?.focus(), 100);
       }
     } catch (error) {
       console.error('Resend error:', error);
