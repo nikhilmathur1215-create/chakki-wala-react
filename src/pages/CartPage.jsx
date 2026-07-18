@@ -221,7 +221,7 @@ const CartPage = ({ showToast }) => {
         <span className="material-symbols-outlined text-6xl text-gray-400">shopping_cart</span>
         <p className="text-gray-500 mt-4">Your cart is empty</p>
         <button onClick={() => navigate('/')} className="mt-4 bg-primary text-white px-6 py-2 rounded-full">
-          Continue Shopping
+          Start Shopping
         </button>
       </div>
     )
